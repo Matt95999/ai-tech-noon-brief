@@ -1,0 +1,66 @@
+name: AI Tech Noon Brief
+
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Run with sample data only"
+        required: false
+        default: "false"
+
+jobs:
+  generate-and-send:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5' }}
+      REPORT_TIMEZONE: ${{ vars.REPORT_TIMEZONE || 'Asia/Shanghai' }}
+      LOOKBACK_HOURS: ${{ vars.LOOKBACK_HOURS || '24' }}
+      SMTP_HOST: ${{ secrets.SMTP_HOST }}
+      SMTP_PORT: ${{ secrets.SMTP_PORT }}
+      SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+      EMAIL_TO: ${{ secrets.EMAIL_TO }}
+      EMAIL_SUBJECT_PREFIX: AI/科技行业中午简报
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Copy example config when missing
+        run: |
+          if [ ! -f config.json ]; then
+            cp config.example.json config.json
+          fi
+
+      - name: Run unit tests
+        run: |
+          python3 -m unittest discover -s tests
+
+      - name: Run report pipeline
+        run: |
+          if [ "${{ github.event.inputs.dry_run || 'false' }}" = "true" ]; then
+            ./run_brief.sh --dry-run
+          else
+            ./run_brief.sh
+          fi
+
+      - name: Upload report artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-tech-brief-${{ github.run_id }}
+          path: |
+            reports/
+            artifacts/
+            reviews/
+            summaries/
