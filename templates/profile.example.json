@@ -1,0 +1,23 @@
+{
+  "slug": "example-brief",
+  "topic_name": "示例资料简报",
+  "timezone": "Asia/Shanghai",
+  "lookback_hours": 24,
+  "collectors": [
+    "openai_search",
+    "rss"
+  ],
+  "template_path": "templates/ai_tech_brief_template.md",
+  "focus_companies": [],
+  "include_keywords": [],
+  "exclude_keywords": [],
+  "delivery": {
+    "channels": [
+      "email"
+    ],
+    "email_subject_prefix": "示例资料简报",
+    "attach_markdown": true
+  },
+  "retention_days": 14
+}
+

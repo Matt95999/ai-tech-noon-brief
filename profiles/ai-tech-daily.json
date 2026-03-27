@@ -1,0 +1,48 @@
+{
+  "slug": "ai-tech-daily",
+  "topic_name": "AI/科技行业中午简报",
+  "timezone": "Asia/Shanghai",
+  "lookback_hours": 24,
+  "collectors": [
+    "openai_search",
+    "rss"
+  ],
+  "template_path": "templates/ai_tech_brief_template.md",
+  "focus_companies": [
+    "OpenAI",
+    "Anthropic",
+    "NVIDIA",
+    "Microsoft",
+    "Google",
+    "Amazon",
+    "Meta",
+    "Apple",
+    "TSMC",
+    "AMD"
+  ],
+  "include_keywords": [
+    "artificial intelligence",
+    "AI infrastructure",
+    "chip",
+    "semiconductor",
+    "developer tools",
+    "coding agent",
+    "cloud",
+    "data center",
+    "robotics"
+  ],
+  "exclude_keywords": [
+    "sports",
+    "celebrity",
+    "gaming rumor"
+  ],
+  "delivery": {
+    "channels": [
+      "email"
+    ],
+    "email_subject_prefix": "AI/科技行业中午简报",
+    "attach_markdown": true
+  },
+  "retention_days": 14
+}
+
