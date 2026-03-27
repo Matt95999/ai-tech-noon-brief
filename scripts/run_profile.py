@@ -35,35 +35,14 @@ FALLBACK_RESEARCH_NOTES = """# Research Notes
 - 这是 dry-run 样例数据，不代表真实新闻结果。
 """
 
-FALLBACK_REPORT = """# {{topic_name}}
-
-日期：{{date}}
-生成时间：{{generated_at}}
-
-## 一、执行摘要
+FALLBACK_REPORT_BODY = """
+## Dry Run Notes
 
 - dry-run 模式已成功跑通 profile 管线。
 - 当前输出基于样例研究底稿，不代表真实市场变化。
+- 正式运行后会按 profile collector 拉取真实资料。
 
-## 二、重点事件
-
-### 1. 行业层面
-
-- 无重大新增。
-
-### 2. 公司层面
-
-- 正式运行后将补入真实来源。
-
-## 三、市场与产业链含义
-
-- 可用于验证模板、报告目录和发送链路。
-
-## 四、值得继续跟踪
-
-- 配置 profile 后的真实主题动态。
-
-## 五、来源清单
+## Source Log
 
 - Dry-run sample: https://example.com/sample
 """
@@ -151,10 +130,8 @@ def main() -> int:
     artifacts_dir = project_root / "artifacts" / date_str
 
     if args.dry_run:
-        report_markdown = apply_template_defaults(
-            FALLBACK_REPORT.replace("{{topic_name}}", config["topic_name"]),
-            now_local,
-        )
+        report_markdown = apply_template_defaults(template_text, now_local).rstrip()
+        report_markdown = f"{report_markdown}\n\n{FALLBACK_REPORT_BODY.strip()}\n"
         result = {
             "mode": "dry-run",
             "research_notes": FALLBACK_RESEARCH_NOTES,

@@ -18,6 +18,11 @@
    - `python3 scripts/run_profile.py --profile <slug>`
 7. 如果需要定时运行，在 `.github/workflows/ai-tech-noon-brief.yml` 中新增或调整 profile 参数
 
+## 已有可复用 profile
+
+- `ai-tech-daily`：AI / 科技行业中午简报
+- `ai-frontier-daily`：AI 前沿晨报
+
 ## 默认流程
 
 - 优先使用高质量搜索
@@ -33,4 +38,3 @@
 - secrets 是否已配置
 - dry-run 是否通过
 - 真实发送是否成功
-
