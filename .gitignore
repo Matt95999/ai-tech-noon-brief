@@ -1,0 +1,17 @@
+.env
+config.json
+__pycache__/
+*.pyc
+*.pyo
+*.swp
+.DS_Store
+artifacts/*
+!artifacts/.gitkeep
+logs/*
+!logs/.gitkeep
+reports/*
+!reports/.gitkeep
+reviews/*
+!reviews/.gitkeep
+summaries/*
+!summaries/.gitkeep
