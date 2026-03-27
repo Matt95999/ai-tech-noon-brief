@@ -5,6 +5,10 @@ on:
     - cron: "0 4 * * *"
   workflow_dispatch:
     inputs:
+      profile:
+        description: "Profile to run"
+        required: false
+        default: "ai-tech-daily"
       dry_run:
         description: "Run with sample data only"
         required: false
@@ -20,6 +24,7 @@ jobs:
       OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5' }}
       REPORT_TIMEZONE: ${{ vars.REPORT_TIMEZONE || 'Asia/Shanghai' }}
       LOOKBACK_HOURS: ${{ vars.LOOKBACK_HOURS || '24' }}
+      BRIEF_PROFILE: ${{ github.event.inputs.profile || 'ai-tech-daily' }}
       SMTP_HOST: ${{ secrets.SMTP_HOST }}
       SMTP_PORT: ${{ secrets.SMTP_PORT }}
       SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
