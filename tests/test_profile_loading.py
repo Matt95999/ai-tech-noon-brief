@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.run_profile import load_profile
+from scripts.run_profile import load_profile, resolve_default_profile
 
 
 class ProfileLoadingTests(unittest.TestCase):
@@ -23,6 +23,22 @@ class ProfileLoadingTests(unittest.TestCase):
             profile_path, config = load_profile(project_root, "ignored", path)
             self.assertEqual(profile_path, path.resolve())
             self.assertEqual(config["slug"], "custom")
+
+    def test_resolve_default_profile_prefers_configurable_default(self) -> None:
+        import os
+
+        old_profile = os.environ.pop("BRIEF_PROFILE", None)
+        old_default = os.environ.get("BRIEF_DEFAULT_PROFILE")
+        os.environ["BRIEF_DEFAULT_PROFILE"] = "ai-frontier-daily"
+        try:
+            self.assertEqual(resolve_default_profile(), "ai-frontier-daily")
+        finally:
+            if old_profile is not None:
+                os.environ["BRIEF_PROFILE"] = old_profile
+            if old_default is None:
+                os.environ.pop("BRIEF_DEFAULT_PROFILE", None)
+            else:
+                os.environ["BRIEF_DEFAULT_PROFILE"] = old_default
 
 
 if __name__ == "__main__":

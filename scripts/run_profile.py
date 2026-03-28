@@ -35,38 +35,21 @@ FALLBACK_RESEARCH_NOTES = """# Research Notes
 - 这是 dry-run 样例数据，不代表真实新闻结果。
 """
 
-FALLBACK_REPORT = """# {{topic_name}}
-
-日期：{{date}}
-生成时间：{{generated_at}}
-
-## 一、执行摘要
+FALLBACK_REPORT_BODY = """
+## Dry Run Notes
 
 - dry-run 模式已成功跑通 profile 管线。
 - 当前输出基于样例研究底稿，不代表真实市场变化。
+- 正式运行后会按 profile collector 拉取真实资料。
 
-## 二、重点事件
-
-### 1. 行业层面
-
-- 无重大新增。
-
-### 2. 公司层面
-
-- 正式运行后将补入真实来源。
-
-## 三、市场与产业链含义
-
-- 可用于验证模板、报告目录和发送链路。
-
-## 四、值得继续跟踪
-
-- 配置 profile 后的真实主题动态。
-
-## 五、来源清单
+## Source Log
 
 - Dry-run sample: https://example.com/sample
 """
+
+
+def resolve_default_profile() -> str:
+    return os.environ.get("BRIEF_PROFILE") or os.environ.get("BRIEF_DEFAULT_PROFILE") or "ai-frontier-daily"
 
 
 def load_profile(project_root: Path, profile_name: str, config_override: Path | None = None) -> tuple[Path, dict]:
@@ -123,7 +106,7 @@ def generate_review_note(project_root: Path, report_path: Path) -> Path:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run a configured research brief profile.")
     parser.add_argument("--project-root", type=Path, default=PROJECT_ROOT)
-    parser.add_argument("--profile", default=os.environ.get("BRIEF_PROFILE", "ai-tech-daily"))
+    parser.add_argument("--profile", default=resolve_default_profile())
     parser.add_argument("--config", type=Path)
     parser.add_argument("--model", default=os.environ.get("OPENAI_MODEL", DEFAULT_MODEL))
     parser.add_argument("--timezone")
@@ -151,10 +134,8 @@ def main() -> int:
     artifacts_dir = project_root / "artifacts" / date_str
 
     if args.dry_run:
-        report_markdown = apply_template_defaults(
-            FALLBACK_REPORT.replace("{{topic_name}}", config["topic_name"]),
-            now_local,
-        )
+        report_markdown = apply_template_defaults(template_text, now_local).rstrip()
+        report_markdown = f"{report_markdown}\n\n{FALLBACK_REPORT_BODY.strip()}\n"
         result = {
             "mode": "dry-run",
             "research_notes": FALLBACK_RESEARCH_NOTES,
