@@ -14,9 +14,14 @@ on:
         required: false
         default: "false"
 
+concurrency:
+  group: ai-tech-noon-brief-${{ github.event.inputs.profile || 'ai-tech-daily' }}
+  cancel-in-progress: false
+
 jobs:
   generate-and-send:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
     env:
@@ -58,6 +63,14 @@ jobs:
           else
             ./run_brief.sh
           fi
+
+      - name: Validate report structure
+        run: |
+          REPORT_DATE=$(TZ=Asia/Shanghai date +%F)
+          REPORT_PATH="reports/${REPORT_DATE}.md"
+          test -s "$REPORT_PATH"
+          grep -q "Executive Summary" "$REPORT_PATH"
+          grep -q "Source Log" "$REPORT_PATH"
 
       - name: Upload report artifacts
         if: always()
