@@ -25,6 +25,7 @@ from brief_utils import (
     read_json,
     write_text,
 )
+from scripts.brief_utils import BriefGenerationError as ScriptsBriefGenerationError
 
 FALLBACK_RESEARCH_NOTES = """# Research Notes
 ## Time Window
@@ -256,7 +257,7 @@ def main() -> int:
         if "openai_search" in collectors and api_key:
             try:
                 result = collect_openai_report(now_local, config, template_text, args.model, api_key)
-            except BriefGenerationError as exc:
+            except (BriefGenerationError, ScriptsBriefGenerationError) as exc:
                 reason = str(exc).replace("\n", " ").strip()
                 result = {
                     "mode": "degraded-openai-error",
