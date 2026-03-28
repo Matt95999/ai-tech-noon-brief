@@ -7,16 +7,23 @@ import os
 import smtplib
 from email.message import EmailMessage
 from pathlib import Path
+from typing import Optional
 
 from brief_utils import BriefGenerationError, get_bool_env, parse_csv_list, require_env
 
 
-def build_subject(report_path: Path) -> str:
-    prefix = os.environ.get("EMAIL_SUBJECT_PREFIX", "AI/科技行业中午简报").strip() or "AI/科技行业中午简报"
+def build_subject(report_path: Path, subject_prefix: Optional[str] = None) -> str:
+    prefix = (subject_prefix or os.environ.get("EMAIL_SUBJECT_PREFIX", "AI/科技行业中午简报")).strip()
+    prefix = prefix or "AI/科技行业中午简报"
     return f"{prefix}（{report_path.stem}）"
 
 
-def build_message(report_path: Path, attach_markdown: bool = True, allow_placeholder: bool = False) -> EmailMessage:
+def build_message(
+    report_path: Path,
+    attach_markdown: bool = True,
+    allow_placeholder: bool = False,
+    subject_prefix: Optional[str] = None,
+) -> EmailMessage:
     email_from = os.environ.get("EMAIL_FROM", "").strip()
     recipients = parse_csv_list(os.environ.get("EMAIL_TO", ""))
     if allow_placeholder:
@@ -33,7 +40,7 @@ def build_message(report_path: Path, attach_markdown: bool = True, allow_placeho
     message = EmailMessage()
     message["From"] = email_from
     message["To"] = ", ".join(recipients)
-    message["Subject"] = build_subject(report_path)
+    message["Subject"] = build_subject(report_path, subject_prefix=subject_prefix)
     message.set_content(content)
 
     if attach_markdown:
