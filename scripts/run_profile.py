@@ -17,7 +17,14 @@ if str(PROJECT_ROOT / "scripts") not in sys.path:
 
 from collectors import collect_openai_report, collect_rss_report
 from delivery import send_profile_email
-from brief_utils import DEFAULT_MODEL, apply_template_defaults, merge_config, read_json, write_text
+from brief_utils import (
+    DEFAULT_MODEL,
+    BriefGenerationError,
+    apply_template_defaults,
+    merge_config,
+    read_json,
+    write_text,
+)
 
 FALLBACK_RESEARCH_NOTES = """# Research Notes
 ## Time Window
@@ -86,6 +93,104 @@ def cleanup_old_outputs(project_root: Path, retention_days: int, now_local: date
                     item.unlink()
 
 
+def build_degraded_research_notes(now_local: datetime, config: dict, reason: str) -> str:
+    window_start = now_local - timedelta(hours=int(config["lookback_hours"]))
+    return "\n".join(
+        [
+            "# Research Notes",
+            "## Time Window",
+            f"- {window_start.strftime('%Y-%m-%d %H:%M %Z')} 到 {now_local.strftime('%Y-%m-%d %H:%M %Z')}",
+            "",
+            "## Key Findings",
+            f"- {now_local.strftime('%Y-%m-%d')}：无重大新增。深度检索链路未完成，已自动切换为降级输出。",
+            f"- 原因：{reason}",
+            "",
+            "## Company Watch",
+            "- 重点公司未完成深度检索，本次不做延伸判断。",
+            "",
+            "## Evidence Table",
+            "| Date | Topic | Company | Claim | Why It Matters | Source |",
+            "| --- | --- | --- | --- | --- | --- |",
+            f"| {now_local.strftime('%Y-%m-%d')} | Automation fallback | - | 深度检索链路未完成，系统自动降级输出 | 保证晨报不断档 | https://platform.openai.com/docs/guides/error-codes/api-errors |",
+            "",
+            "## Source Quality Notes",
+            "- 本次未完成深度检索，Source Log 仅保留错误文档与自动化降级说明。",
+        ]
+    )
+
+
+def build_ai_frontier_degraded_report(now_local: datetime, reason: str) -> str:
+    date_str = now_local.strftime("%Y-%m-%d")
+    generated_at = now_local.strftime("%Y-%m-%d %H:%M %Z")
+    return "\n".join(
+        [
+            "# AI Frontier Daily",
+            "",
+            f"日期: {date_str}",
+            f"生成时间: {generated_at}",
+            "",
+            "## Executive Summary",
+            "- 无重大新增。本次深度检索链路未完成，晨报已自动降级输出。",
+            f"- 原因：{reason}",
+            "- 影响：本次保留固定版式并继续发送，避免自动化中断。",
+            "",
+            "## Macro / Market Pulse",
+            "- 无重大新增。由于深度检索未完成，本次不扩展市场判断。",
+            "- 关注点：待额度恢复后补跑，继续观察模型、算力与 Agent 生态变化。",
+            "",
+            "## Company Watch",
+            "### Jensen Huang / NVIDIA",
+            "- 无重大新增。深度检索未完成。",
+            "- 跟踪重点：继续观察产品节奏、生态合作与黄仁勋公开表态。",
+            "",
+            "### Google",
+            "- 无重大新增。深度检索未完成。",
+            "- 跟踪重点：继续观察 Gemini、Cloud 与模型发布节奏。",
+            "",
+            "### Anthropic",
+            "- 无重大新增。深度检索未完成。",
+            "- 跟踪重点：继续观察 Claude、API 与企业合作更新。",
+            "",
+            "### DeepSeek",
+            "- 无重大新增。深度检索未完成。",
+            "- 跟踪重点：继续观察开源模型、推理效率与社区更新。",
+            "",
+            "## GitHub Radar",
+            "- 无重大新增。深度检索未完成，未形成高置信仓库更新结论。",
+            "- 跟踪重点：待恢复后补抓 Agent、Inference、RAG、Benchmark 与 Multimodal 更新。",
+            "",
+            "## What Matters",
+            "- GitHub Actions 自动化链路已恢复正常，当前阻塞来自模型配额而非 workflow。",
+            "- 若配额短期无法恢复，降级输出仍能保证晨报连续性。",
+            "",
+            "## Source Log",
+            "1. OpenAI API error codes",
+            "   https://platform.openai.com/docs/guides/error-codes/api-errors",
+        ]
+    )
+
+
+def build_degraded_report(now_local: datetime, config: dict, reason: str) -> str:
+    if config.get("slug") == "ai-frontier-daily":
+        return build_ai_frontier_degraded_report(now_local, reason)
+    return "\n".join(
+        [
+            f"# {config['topic_name']}",
+            "",
+            f"日期: {now_local.strftime('%Y-%m-%d')}",
+            f"生成时间: {now_local.strftime('%Y-%m-%d %H:%M %Z')}",
+            "",
+            "## Executive Summary",
+            "- 无重大新增。本次深度检索链路未完成，已自动降级输出。",
+            f"- 原因：{reason}",
+            "",
+            "## Source Log",
+            "1. OpenAI API error codes",
+            "   https://platform.openai.com/docs/guides/error-codes/api-errors",
+        ]
+    )
+
+
 def generate_review_note(project_root: Path, report_path: Path) -> Path:
     import subprocess
 
@@ -149,7 +254,19 @@ def main() -> int:
         collectors = config.get("collectors", ["rss"])
         api_key = os.environ.get("OPENAI_API_KEY", "").strip()
         if "openai_search" in collectors and api_key:
-            result = collect_openai_report(now_local, config, template_text, args.model, api_key)
+            try:
+                result = collect_openai_report(now_local, config, template_text, args.model, api_key)
+            except BriefGenerationError as exc:
+                reason = str(exc).replace("\n", " ").strip()
+                result = {
+                    "mode": "degraded-openai-error",
+                    "research_notes": build_degraded_research_notes(now_local, config, reason),
+                    "report_markdown": build_degraded_report(now_local, config, reason),
+                    "research_response": {"mode": "degraded-openai-error", "reason": reason},
+                    "final_response": {"mode": "degraded-openai-error", "reason": reason},
+                    "items_found": 0,
+                    "degraded": True,
+                }
         else:
             result = collect_rss_report(now_local, config)
 
