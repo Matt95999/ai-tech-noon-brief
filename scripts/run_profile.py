@@ -48,6 +48,10 @@ FALLBACK_REPORT_BODY = """
 """
 
 
+def resolve_default_profile() -> str:
+    return os.environ.get("BRIEF_PROFILE") or os.environ.get("BRIEF_DEFAULT_PROFILE") or "ai-frontier-daily"
+
+
 def load_profile(project_root: Path, profile_name: str, config_override: Path | None = None) -> tuple[Path, dict]:
     if config_override:
         profile_path = config_override.expanduser().resolve()
@@ -102,7 +106,7 @@ def generate_review_note(project_root: Path, report_path: Path) -> Path:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run a configured research brief profile.")
     parser.add_argument("--project-root", type=Path, default=PROJECT_ROOT)
-    parser.add_argument("--profile", default=os.environ.get("BRIEF_PROFILE", "ai-tech-daily"))
+    parser.add_argument("--profile", default=resolve_default_profile())
     parser.add_argument("--config", type=Path)
     parser.add_argument("--model", default=os.environ.get("OPENAI_MODEL", DEFAULT_MODEL))
     parser.add_argument("--timezone")

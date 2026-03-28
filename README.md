@@ -67,6 +67,7 @@ python3 scripts/send_email_report.py reports/2026-03-27.md --dry-run
 工作流文件：`.github/workflows/ai-tech-noon-brief.yml`
 
 - 定时：每天 `12:00` 北京时间，对应 `04:00 UTC`
+- 默认运行 profile：`ai-frontier-daily`
 - 也支持手动触发 `workflow_dispatch`
 
 ### 需要配置的 Secrets
@@ -84,6 +85,7 @@ python3 scripts/send_email_report.py reports/2026-03-27.md --dry-run
 - `OPENAI_MODEL`
 - `REPORT_TIMEZONE`
 - `LOOKBACK_HOURS`
+- `BRIEF_DEFAULT_PROFILE`：覆盖 GitHub Actions 与本地脚本默认 profile
 
 ## Profile 化配置
 
