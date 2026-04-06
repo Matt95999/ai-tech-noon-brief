@@ -67,6 +67,16 @@ python3 scripts/run_profile.py --profile ai-tech-daily --dry-run
 python3 scripts/run_profile.py --profile ai-evening-brief --dry-run
 ```
 
+模型配置预检：
+
+```bash
+python3 scripts/run_profile.py --profile ai-evening-brief --check-deepseek
+```
+
+```bash
+python3 scripts/run_profile.py --profile ai-frontier-daily --check-openai
+```
+
 ### 3. 单独测试邮件模块
 
 ```bash
@@ -100,6 +110,17 @@ python3 scripts/send_email_report.py reports/2026-03-27.md --dry-run
 - `EMAIL_FROM`
 - `EMAIL_TO`
 
+有效配置规则：
+
+- `DEEPSEEK_API_URL` 支持填写 base URL 或完整聊天接口 URL。
+- 例如 `https://api.deepseek.com` 会自动补全成 `https://api.deepseek.com/chat/completions`，`https://api.deepseek.com/v1` 会自动补全成 `https://api.deepseek.com/v1/chat/completions`
+- 如果 `DEEPSEEK_API_URL` 指向明显错误的路径，系统会直接失败，不再静默降级。
+- `DEEPSEEK_MODEL` 默认可用 `deepseek-chat`
+- `OPENAI_API_KEY` 只对 `openai_search` 类 profile 生效
+- 如果 `OPENAI_API_KEY` 缺失，`openai_search` profile 会回退到 RSS，不会得到 OpenAI 深度检索结果
+- `SMTP_PORT` 必须是有效端口；`SMTP_USE_SSL=true` 不应搭配 `587`，`SMTP_USE_TLS=true` 不应搭配 `465`
+- `DEEPSEEK_API_KEY`、`DEEPSEEK_API_URL`、`SMTP` 配置现在都会在 live workflow 生成前先做预检；配置错误会直接失败，不再因为低信号日被掩盖
+
 ### 可选 Variables
 
 - `REPORT_TIMEZONE`
@@ -128,7 +149,11 @@ python3 scripts/send_email_report.py reports/2026-03-27.md --dry-run
 4. 运行 `python3 scripts/run_profile.py --profile <你的主题> --dry-run`
 5. 若需要正式发送，再配置 DeepSeek / SMTP secrets 并上线到 GitHub Actions
 
-SOP 见：`docs/SOP.md`
+SOP 见：
+
+- `docs/SOP.md`：仓库接入与运行说明
+- `docs/news-automation-sop.md`：面向“新主题新闻自动化复用”的标准 SOP
+- `docs/new-profile-checklist.md`：新主题接入检查单
 
 ## 自审机制
 
@@ -157,3 +182,4 @@ python3 -m unittest discover -s tests
 - 如果没有足够高置信新闻，报告会明确输出“无重大新增”
 - 邮件失败不会删除已生成的报告与 artifacts，便于补发和排查
 - `ai-evening-brief` 默认采用“主信源优先 + 二线高质量媒体补充 + 影响力关键词过滤”的规则
+- 新主题新闻自动化默认复用 `deepseek_chat + rss + GitHub Actions + SMTP` 这条链路

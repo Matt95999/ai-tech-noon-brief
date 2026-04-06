@@ -57,6 +57,16 @@ def build_settings() -> dict:
     return settings
 
 
+def validate_smtp_port(raw_port: str) -> str:
+    try:
+        port = int(str(raw_port).strip())
+    except (TypeError, ValueError) as exc:
+        raise BriefGenerationError(f"Invalid SMTP_PORT: {raw_port}") from exc
+    if port < 1 or port > 65535:
+        raise BriefGenerationError(f"SMTP_PORT out of range: {port}")
+    return str(port)
+
+
 def validate_settings(settings: dict, allow_placeholder: bool = False, require_smtp: bool = True) -> dict:
     validated = dict(settings)
     if allow_placeholder:
@@ -75,6 +85,13 @@ def validate_settings(settings: dict, allow_placeholder: bool = False, require_s
             raise BriefGenerationError("Missing SMTP_USERNAME for email delivery.")
         if not validated["smtp_password"]:
             raise BriefGenerationError("Missing SMTP_PASSWORD for email delivery.")
+        validated["smtp_port"] = validate_smtp_port(validated["smtp_port"])
+        if validated["smtp_use_ssl"] and validated["smtp_use_tls"]:
+            raise BriefGenerationError("SMTP_USE_SSL and SMTP_USE_TLS cannot both be true.")
+        if validated["smtp_use_ssl"] and validated["smtp_port"] == "587":
+            raise BriefGenerationError("SMTP_USE_SSL=true with SMTP_PORT=587 is likely misconfigured; use 465 or disable SSL.")
+        if validated["smtp_use_tls"] and validated["smtp_port"] == "465":
+            raise BriefGenerationError("SMTP_USE_TLS=true with SMTP_PORT=465 is likely misconfigured; use SSL or switch to 587.")
     return validated
 
 

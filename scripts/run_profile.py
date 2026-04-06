@@ -16,6 +16,8 @@ if str(PROJECT_ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 
 from collectors import collect_deepseek_report, collect_openai_report, collect_rss_report
+from collectors.deepseek_chat import check_deepseek_config
+from collectors.openai_search import check_openai_config
 from delivery import send_profile_email
 from brief_utils import (
     DEFAULT_DEEPSEEK_MODEL,
@@ -253,6 +255,22 @@ def generate_review_note(project_root: Path, report_path: Path) -> Path:
     return project_root / "reviews" / f"{report_path.stem}-self-review.md"
 
 
+def run_deepseek_check(model: str) -> int:
+    result = check_deepseek_config(model=model)
+    print(f"DeepSeek config OK: {result['api_url']}")
+    print(f"Model: {result['model']}")
+    print(f"Response: {result['output']}")
+    return 0
+
+
+def run_openai_check(model: str) -> int:
+    result = check_openai_config(model=model)
+    print(f"OpenAI config OK: {result['api_url']}")
+    print(f"Model: {result['model']}")
+    print(f"Response: {result['output']}")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run a configured research brief profile.")
     parser.add_argument("--project-root", type=Path, default=PROJECT_ROOT)
@@ -264,12 +282,19 @@ def main() -> int:
     parser.add_argument("--date")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--skip-delivery", action="store_true")
+    parser.add_argument("--check-deepseek", action="store_true")
+    parser.add_argument("--check-openai", action="store_true")
     args = parser.parse_args()
 
     project_root = args.project_root.expanduser().resolve()
     profile_path, config = load_profile(project_root, args.profile, args.config)
     config = merge_config(config, timezone=args.timezone, lookback_hours=args.lookback_hours)
     resolved_model = resolve_model(args, config)
+
+    if args.check_deepseek:
+        return run_deepseek_check(resolved_model)
+    if args.check_openai:
+        return run_openai_check(resolved_model)
 
     timezone = ZoneInfo(config["timezone"])
     now_local = datetime.now(timezone)
@@ -366,4 +391,8 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except (ValueError, BriefGenerationError, ScriptsBriefGenerationError) as exc:
+        print(str(exc), file=sys.stderr)
+        raise SystemExit(1)
