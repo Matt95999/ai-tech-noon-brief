@@ -26,7 +26,7 @@ class ProfileLoadingTests(unittest.TestCase):
     def test_load_us_iran_conflict_profile(self) -> None:
         profile_path, config = load_profile(PROJECT_ROOT, "us-iran-conflict-daily")
         self.assertEqual(profile_path.name, "us-iran-conflict-daily.json")
-        self.assertEqual(config["topic_name"], "美伊冲突每日简报")
+        self.assertEqual(config["topic_name"], "美国-伊朗冲突每日简报")
         self.assertIn("deepseek_chat", config["collectors"])
         self.assertIn("Reuters", config["source_policy"]["secondary_publishers"])
         self.assertGreaterEqual(config["impact_policy"]["min_high_confidence_items"], 1)

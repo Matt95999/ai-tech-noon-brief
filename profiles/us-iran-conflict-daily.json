@@ -1,6 +1,6 @@
 {
   "slug": "us-iran-conflict-daily",
-  "topic_name": "美伊冲突每日简报",
+  "topic_name": "美国-伊朗冲突每日简报",
   "timezone": "Asia/Shanghai",
   "lookback_hours": 24,
   "collectors": [
@@ -82,7 +82,7 @@
     "channels": [
       "email"
     ],
-    "email_subject_prefix": "美伊冲突每日简报",
+    "email_subject_prefix": "美国-伊朗冲突每日简报",
     "attach_markdown": true
   },
   "retention_days": 14
