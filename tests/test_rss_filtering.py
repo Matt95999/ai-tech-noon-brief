@@ -12,10 +12,19 @@ if str(PROJECT_ROOT) not in sys.path:
 if str(PROJECT_ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 
-from collectors.rss import filter_rss_items
+from collectors.rss import build_rss_queries, filter_rss_items
 
 
 class RssFilteringTests(unittest.TestCase):
+    def test_build_rss_queries_prefers_profile_specific_queries(self) -> None:
+        config = {
+            "rss_queries": ["query a", "query b"],
+            "focus_companies": ["Ignored"],
+            "include_keywords": ["Ignored"],
+            "topic_name": "Ignored",
+        }
+        self.assertEqual(build_rss_queries(config), ["query a", "query b"])
+
     def test_filter_rss_items_respects_source_and_impact_policy(self) -> None:
         config = {
             "source_policy": {

@@ -143,6 +143,7 @@ class DeepSeekCollectorTests(unittest.TestCase):
         self.assertIn("## Latest Developments", result["report_markdown"])
         self.assertIn("## Financial / Macro Pulse", result["report_markdown"])
         self.assertIn("## Source Log", result["report_markdown"])
+        self.assertNotIn("AI 动态", result["report_markdown"])
 
     def test_collect_deepseek_report_raises_on_empty_model_output(self) -> None:
         old_env = {key: os.environ.get(key) for key in ("DEEPSEEK_API_URL", "DEEPSEEK_API_KEY")}

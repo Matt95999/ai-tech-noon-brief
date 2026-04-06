@@ -118,6 +118,9 @@ def merge_config(
     impact_policy = dict(config.get("impact_policy", {}))
     impact_policy["keywords"] = normalize_string_list(impact_policy.get("keywords", []))
     impact_policy["max_candidates"] = int(impact_policy.get("max_candidates", 12))
+    impact_policy["raw_candidate_limit"] = int(
+        impact_policy.get("raw_candidate_limit", max(24, impact_policy["max_candidates"] * 6))
+    )
     impact_policy["min_high_confidence_items"] = int(impact_policy.get("min_high_confidence_items", 1))
     impact_policy["allow_low_signal_fallback"] = bool(impact_policy.get("allow_low_signal_fallback", True))
     config["impact_policy"] = impact_policy
