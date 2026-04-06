@@ -16,6 +16,13 @@ class ProfileLoadingTests(unittest.TestCase):
         self.assertEqual(config["slug"], "ai-tech-daily")
         self.assertIn("rss", config["collectors"])
 
+    def test_load_evening_profile_includes_policy_blocks(self) -> None:
+        profile_path, config = load_profile(PROJECT_ROOT, "ai-evening-brief")
+        self.assertEqual(profile_path.name, "ai-evening-brief.json")
+        self.assertIn("deepseek_chat", config["collectors"])
+        self.assertGreaterEqual(config["impact_policy"]["min_high_confidence_items"], 1)
+        self.assertTrue(config["source_policy"]["secondary_publishers"])
+
     def test_load_profile_from_override(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "custom.json"

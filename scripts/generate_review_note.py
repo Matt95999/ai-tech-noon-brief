@@ -23,6 +23,8 @@ def main() -> int:
     degraded = bool(metadata.get("degraded"))
     mode = metadata.get("mode", "unknown")
     items_found = metadata.get("items_found", 0)
+    topic_name = metadata.get("topic_name", "AI / 科技行业简报")
+    profile_name = metadata.get("profile", "unknown")
     risk_lines = [
         "- 检查报告是否存在“无重大新增”时的降级说明。",
         "- 检查邮件配置是否通过环境变量提供，避免凭据写入仓库。",
@@ -39,11 +41,11 @@ def main() -> int:
 
 ## Goal
 
-- 生成 AI / 科技行业中午简报，并为邮件发送保留可追溯 artifacts。
+- 生成 {topic_name}，并为邮件发送保留可追溯 artifacts。
 
 ## Scope
 
-- `scripts/generate_ai_tech_brief.py`
+- `scripts/run_profile.py`
 - `scripts/send_email_report.py`
 - `reports/{date_str}.md`
 - `artifacts/{date_str}/`
@@ -63,6 +65,7 @@ def main() -> int:
 ## Run Summary
 
 - Mode: `{mode}`
+- Profile: `{profile_name}`
 - Items found: `{items_found}`
 - Degraded output: `{degraded}`
 

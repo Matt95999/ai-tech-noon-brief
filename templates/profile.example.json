@@ -11,6 +11,17 @@
   "focus_companies": [],
   "include_keywords": [],
   "exclude_keywords": [],
+  "source_policy": {
+    "primary_publishers": [],
+    "secondary_publishers": [],
+    "require_primary_source": false
+  },
+  "impact_policy": {
+    "keywords": [],
+    "max_candidates": 8,
+    "min_high_confidence_items": 1,
+    "allow_low_signal_fallback": true
+  },
   "delivery": {
     "channels": [
       "email"

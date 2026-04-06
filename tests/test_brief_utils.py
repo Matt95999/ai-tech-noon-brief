@@ -26,6 +26,28 @@ class BriefUtilsTests(unittest.TestCase):
         self.assertEqual(merged["timezone"], "Asia/Shanghai")
         self.assertEqual(merged["lookback_hours"], 24)
         self.assertTrue(merged["delivery"]["attach_markdown"])
+        self.assertEqual(merged["source_policy"]["primary_publishers"], [])
+        self.assertEqual(merged["impact_policy"]["max_candidates"], 12)
+
+    def test_merge_config_normalizes_policy_fields(self) -> None:
+        merged = merge_config(
+            {
+                "source_policy": {
+                    "primary_publishers": "OpenAI;Anthropic",
+                    "secondary_publishers": ["Reuters", "Bloomberg"],
+                    "require_primary_source": True,
+                },
+                "impact_policy": {
+                    "keywords": "launch, funding",
+                    "max_candidates": "8",
+                    "min_high_confidence_items": "2",
+                },
+            }
+        )
+        self.assertEqual(merged["source_policy"]["primary_publishers"], ["OpenAI", "Anthropic"])
+        self.assertEqual(merged["impact_policy"]["keywords"], ["launch", "funding"])
+        self.assertEqual(merged["impact_policy"]["max_candidates"], 8)
+        self.assertEqual(merged["impact_policy"]["min_high_confidence_items"], 2)
 
     def test_read_json_missing_file(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
