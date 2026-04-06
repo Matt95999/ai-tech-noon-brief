@@ -274,7 +274,7 @@ def main() -> int:
         if "deepseek_chat" in collectors:
             try:
                 result = collect_deepseek_report(now_local, config, template_text, resolved_model)
-            except (BriefGenerationError, ScriptsBriefGenerationError) as exc:
+            except (BriefGenerationError, ScriptsBriefGenerationError, ValueError) as exc:
                 reason = str(exc).replace("\n", " ").strip()
                 result = {
                     "mode": "degraded-deepseek-error",
@@ -288,7 +288,7 @@ def main() -> int:
         elif "openai_search" in collectors and api_key:
             try:
                 result = collect_openai_report(now_local, config, template_text, resolved_model, api_key)
-            except (BriefGenerationError, ScriptsBriefGenerationError) as exc:
+            except (BriefGenerationError, ScriptsBriefGenerationError, ValueError) as exc:
                 reason = str(exc).replace("\n", " ").strip()
                 result = {
                     "mode": "degraded-openai-error",
