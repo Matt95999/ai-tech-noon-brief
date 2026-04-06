@@ -8,6 +8,16 @@
     "rss"
   ],
   "template_path": "templates/us_iran_conflict_daily_template.md",
+  "rss_queries": [
+    "\"US Iran\" conflict",
+    "\"U.S.\" Iran conflict",
+    "\"Iran\" \"United States\" tensions",
+    "\"Israel\" Iran U.S.",
+    "\"Strait of Hormuz\" Iran",
+    "\"Iran\" sanctions oil",
+    "\"Iran\" Reuters",
+    "\"Iran\" \"Associated Press\""
+  ],
   "focus_companies": [
     "United States",
     "Iran",
@@ -49,9 +59,14 @@
       "Reuters",
       "AP News",
       "Associated Press",
+      "BBC News",
       "Financial Times",
       "Bloomberg",
       "Wall Street Journal",
+      "The New York Times",
+      "The Washington Post",
+      "CNN",
+      "NPR",
       "CNBC",
       "Nikkei Asia"
     ],
@@ -75,6 +90,7 @@
       "nuclear"
     ],
     "max_candidates": 8,
+    "raw_candidate_limit": 48,
     "min_high_confidence_items": 1,
     "allow_low_signal_fallback": true
   },

@@ -190,6 +190,16 @@ def build_low_signal_research_notes(now_local: datetime, config: dict, items: li
 def build_low_signal_report(now_local: datetime, config: dict) -> str:
     slug = config.get("slug")
     companies = config.get("focus_companies", [])[:4]
+    if slug == "us-iran-conflict-daily":
+        summary_lines = [
+            "- 无重大新增。过去 24 小时未出现足够高置信、且具有较大影响力的美国-伊朗冲突新增。",
+            "- 本轮继续保持严格信源纪律，避免把未充分核验的战事、外交或能源噪音写进正式简报。",
+        ]
+    else:
+        summary_lines = [
+            "- 无重大新增。过去 24 小时未出现足够高置信、且具有较大影响力的 AI 动态。",
+            "- 本轮继续保持严格信源纪律，避免把低影响或二手噪音写进正式晚报。",
+        ]
     lines = [
         f"# {config['topic_name']}",
         "",
@@ -197,8 +207,7 @@ def build_low_signal_report(now_local: datetime, config: dict) -> str:
         f"生成时间: {now_local.strftime('%Y-%m-%d %H:%M %Z')}",
         "",
         "## Executive Summary",
-        "- 无重大新增。过去 24 小时未出现足够高置信、且具有较大影响力的 AI 动态。",
-        "- 本轮继续保持严格信源纪律，避免把低影响或二手噪音写进正式晚报。",
+        *summary_lines,
         "",
     ]
     if slug == "us-iran-conflict-daily":

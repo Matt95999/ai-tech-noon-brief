@@ -40,6 +40,9 @@ def parse_pub_date(value: str, fallback_tz: ZoneInfo) -> datetime | None:
 
 
 def build_rss_queries(config: dict) -> list[str]:
+    custom_queries = [str(query).strip() for query in config.get("rss_queries", []) if str(query).strip()]
+    if custom_queries:
+        return custom_queries
     companies = list(config["focus_companies"])[:6]
     keywords = list(config["include_keywords"])[:4]
     query_pool = companies + keywords
@@ -136,7 +139,10 @@ def collect_rss_items(now_local: datetime, config: dict) -> list[dict]:
             item["confidence_score"] = 0
             items.append(item)
     items.sort(key=lambda item: item["published_at"], reverse=True)
-    return items[:12]
+    impact_policy = config.get("impact_policy", {})
+    max_candidates = int(impact_policy.get("max_candidates", 12))
+    raw_candidate_limit = int(impact_policy.get("raw_candidate_limit", max(24, max_candidates * 6)))
+    return items[:raw_candidate_limit]
 
 
 def filter_rss_items(items: list[dict], config: dict) -> list[dict]:
