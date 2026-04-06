@@ -1,0 +1,89 @@
+{
+  "slug": "us-iran-conflict-daily",
+  "topic_name": "美伊冲突每日简报",
+  "timezone": "Asia/Shanghai",
+  "lookback_hours": 24,
+  "collectors": [
+    "deepseek_chat",
+    "rss"
+  ],
+  "template_path": "templates/us_iran_conflict_daily_template.md",
+  "focus_companies": [
+    "United States",
+    "Iran",
+    "Israel",
+    "Saudi Arabia",
+    "United Arab Emirates",
+    "China",
+    "Russia"
+  ],
+  "include_keywords": [
+    "Strait of Hormuz",
+    "ceasefire",
+    "oil prices",
+    "sanctions",
+    "shipping",
+    "missile strike",
+    "nuclear site",
+    "central bank"
+  ],
+  "exclude_keywords": [
+    "sports",
+    "celebrity",
+    "gaming rumor"
+  ],
+  "source_policy": {
+    "primary_publishers": [
+      "The White House",
+      "U.S. Department of State",
+      "U.S. Department of Defense",
+      "Iran International",
+      "IRNA",
+      "IAEA",
+      "IEA",
+      "IMF",
+      "ECB",
+      "Federal Reserve"
+    ],
+    "secondary_publishers": [
+      "Reuters",
+      "AP News",
+      "Associated Press",
+      "Financial Times",
+      "Bloomberg",
+      "Wall Street Journal",
+      "CNBC",
+      "Nikkei Asia"
+    ],
+    "require_primary_source": false
+  },
+  "impact_policy": {
+    "keywords": [
+      "ceasefire",
+      "deadline",
+      "Strait of Hormuz",
+      "oil",
+      "LNG",
+      "sanctions",
+      "airstrike",
+      "missile",
+      "shipping",
+      "inflation",
+      "central bank",
+      "rate cut",
+      "evacuation",
+      "nuclear"
+    ],
+    "max_candidates": 8,
+    "min_high_confidence_items": 1,
+    "allow_low_signal_fallback": true
+  },
+  "delivery": {
+    "channels": [
+      "email"
+    ],
+    "email_subject_prefix": "美伊冲突每日简报",
+    "attach_markdown": true
+  },
+  "retention_days": 14
+}
