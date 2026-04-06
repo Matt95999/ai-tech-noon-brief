@@ -1,4 +1,4 @@
-# 美伊冲突每日简报接入说明
+# 美国-伊朗冲突每日简报接入说明
 
 ## 主题
 
@@ -50,4 +50,4 @@ python3 scripts/send_email_report.py --check-config
 - 确认 `Generate daily brief`
 - 确认 `Validate report structure`
 - 确认 `Send email`
-- 确认邮箱收到 `美伊冲突每日简报（YYYY-MM-DD）`
+- 确认邮箱收到 `美国-伊朗冲突每日简报（YYYY-MM-DD）`
