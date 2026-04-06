@@ -11,7 +11,8 @@ if str(PROJECT_ROOT) not in sys.path:
 if str(PROJECT_ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 
-from scripts.send_email_report import build_message, render_report_html, send_message
+from scripts.send_email_report import build_message, render_report_html, send_message, validate_settings
+from brief_utils import BriefGenerationError
 
 
 class FakeSMTP:
@@ -96,6 +97,40 @@ class EmailDeliveryTests(unittest.TestCase):
             smtplib.SMTP = original_smtp
 
         self.assertEqual(FakeSMTP.sent_messages, 1)
+
+    def test_validate_settings_rejects_conflicting_ssl_and_tls(self) -> None:
+        with self.assertRaises(BriefGenerationError):
+            validate_settings(
+                {
+                    "smtp_host": "smtp.example.com",
+                    "smtp_port": "465",
+                    "smtp_username": "user",
+                    "smtp_password": "pass",
+                    "email_from": "sender@example.com",
+                    "email_to": ["receiver@example.com"],
+                    "smtp_use_ssl": True,
+                    "smtp_use_tls": True,
+                    "smtp_retry_attempts": 2,
+                    "smtp_retry_delay_seconds": 0,
+                }
+            )
+
+    def test_validate_settings_rejects_mismatched_tls_port(self) -> None:
+        with self.assertRaises(BriefGenerationError):
+            validate_settings(
+                {
+                    "smtp_host": "smtp.example.com",
+                    "smtp_port": "465",
+                    "smtp_username": "user",
+                    "smtp_password": "pass",
+                    "email_from": "sender@example.com",
+                    "email_to": ["receiver@example.com"],
+                    "smtp_use_ssl": False,
+                    "smtp_use_tls": True,
+                    "smtp_retry_attempts": 2,
+                    "smtp_retry_delay_seconds": 0,
+                }
+            )
 
 
 if __name__ == "__main__":

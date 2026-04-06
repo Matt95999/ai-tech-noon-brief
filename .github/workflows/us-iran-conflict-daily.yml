@@ -53,6 +53,13 @@ jobs:
         run: |
           python3 -m unittest discover -s tests
 
+      - name: Validate DeepSeek config
+        run: |
+          python3 scripts/run_profile.py --profile us-iran-conflict-daily --check-deepseek
+
+      - name: Validate SMTP config
+        run: |
+          python3 scripts/send_email_report.py --check-smtp
       - name: Generate daily brief
         run: |
           export SKIP_EMAIL=1

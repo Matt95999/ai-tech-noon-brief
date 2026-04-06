@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timedelta
 from urllib import error, request
 
@@ -8,6 +9,7 @@ from scripts.brief_utils import (
     OPENAI_API_URL,
     USER_AGENT,
     BriefGenerationError,
+    DEFAULT_MODEL,
     extract_output_text,
     strip_markdown_fence,
 )
@@ -33,6 +35,28 @@ def request_openai(payload: dict, api_key: str) -> dict:
         raise BriefGenerationError(f"OpenAI API request failed: {exc.code} {details}") from exc
     except error.URLError as exc:
         raise BriefGenerationError(f"OpenAI API request failed: {exc}") from exc
+
+
+def check_openai_config(model: str | None = None, api_key: str | None = None) -> dict:
+    resolved_api_key = (api_key or "").strip() or os.environ.get("OPENAI_API_KEY", "").strip()
+    if not resolved_api_key:
+        raise ValueError("Missing OPENAI_API_KEY for OpenAI config check.")
+
+    resolved_model = model or os.environ.get("OPENAI_MODEL", "").strip() or DEFAULT_MODEL
+    payload = {
+        "model": resolved_model,
+        "input": "Reply with OK only.",
+        "max_output_tokens": 8,
+    }
+    response = request_openai(payload, resolved_api_key)
+    output = extract_output_text(response)
+    if not output:
+        raise BriefGenerationError("OpenAI config check returned empty output.")
+    return {
+        "api_url": OPENAI_API_URL,
+        "model": resolved_model,
+        "output": output,
+    }
 
 
 def format_list(items: list[str], empty_text: str) -> str:

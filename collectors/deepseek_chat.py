@@ -4,6 +4,7 @@ import json
 import os
 from datetime import datetime, timedelta
 from urllib import error, request
+from urllib.parse import urlsplit, urlunsplit
 
 from collectors.rss import collect_rss_items, filter_rss_items, serialize_items
 from scripts.brief_utils import BriefGenerationError, DEFAULT_DEEPSEEK_MODEL, USER_AGENT, strip_markdown_fence
@@ -54,6 +55,65 @@ def request_deepseek(payload: dict, api_key: str, api_url: str) -> dict:
         raise BriefGenerationError(f"DeepSeek API request failed: {exc.code} {details}") from exc
     except error.URLError as exc:
         raise BriefGenerationError(f"DeepSeek API request failed: {exc}") from exc
+
+
+def normalize_deepseek_api_url(api_url: str, purpose: str) -> str:
+    raw_url = api_url.strip()
+    if not raw_url:
+        raise ValueError(f"Missing DEEPSEEK_API_URL for {purpose}.")
+
+    parsed = urlsplit(raw_url)
+    if parsed.scheme not in {"https", "http"} or not parsed.netloc:
+        raise ValueError(f"Invalid DEEPSEEK_API_URL for {purpose}: {raw_url}")
+
+    path = parsed.path.rstrip("/")
+    if path in {"", "/"}:
+        path = "/chat/completions"
+    elif path == "/v1":
+        path = "/v1/chat/completions"
+    elif not path.endswith("/chat/completions"):
+        raise ValueError(
+            "DEEPSEEK_API_URL must point to a chat completions endpoint, for example "
+            "https://api.deepseek.com/chat/completions ."
+        )
+
+    return urlunsplit((parsed.scheme, parsed.netloc, path, parsed.query, ""))
+
+
+def resolve_deepseek_config(model: str | None = None, purpose: str = "DeepSeek operation") -> dict:
+    api_key = os.environ.get("DEEPSEEK_API_KEY", "").strip()
+    if not api_key:
+        raise ValueError(f"Missing DEEPSEEK_API_KEY for {purpose}.")
+
+    api_url = normalize_deepseek_api_url(os.environ.get("DEEPSEEK_API_URL", ""), purpose)
+    resolved_model = model or os.environ.get("DEEPSEEK_MODEL", "").strip() or DEFAULT_DEEPSEEK_MODEL
+    return {
+        "api_key": api_key,
+        "api_url": api_url,
+        "model": resolved_model,
+    }
+
+
+def check_deepseek_config(model: str | None = None) -> dict:
+    resolved = resolve_deepseek_config(model=model, purpose="DeepSeek config check")
+    payload = {
+        "model": resolved["model"],
+        "messages": [
+            {"role": "system", "content": "Return a short plain-text health confirmation."},
+            {"role": "user", "content": "Reply with OK only."},
+        ],
+        "temperature": 0,
+        "max_tokens": 8,
+    }
+    response = request_deepseek(payload, resolved["api_key"], resolved["api_url"])
+    output = extract_choice_text(response)
+    if not output:
+        raise BriefGenerationError("DeepSeek config check returned empty output.")
+    return {
+        "api_url": resolved["api_url"],
+        "model": resolved["model"],
+        "output": output,
+    }
 
 
 def format_candidates(items: list[dict]) -> str:
@@ -255,6 +315,7 @@ def build_low_signal_report(now_local: datetime, config: dict) -> str:
 
 
 def collect_deepseek_report(now_local: datetime, config: dict, template_text: str, model: str | None = None) -> dict:
+    resolved = resolve_deepseek_config(model=model, purpose="DeepSeek live generation")
     items = filter_rss_items(collect_rss_items(now_local, config), config)
     min_items = int(config.get("impact_policy", {}).get("min_high_confidence_items", 1))
     if len(items) < min_items:
@@ -268,36 +329,28 @@ def collect_deepseek_report(now_local: datetime, config: dict, template_text: st
             "degraded": True,
         }
 
-    api_key = os.environ.get("DEEPSEEK_API_KEY", "").strip()
-    api_url = os.environ.get("DEEPSEEK_API_URL", "").strip()
-    if not api_key:
-        raise ValueError("Missing DEEPSEEK_API_KEY for DeepSeek live generation.")
-    if not api_url:
-        raise ValueError("Missing DEEPSEEK_API_URL for DeepSeek live generation.")
-
-    resolved_model = model or os.environ.get("DEEPSEEK_MODEL", "").strip() or DEFAULT_DEEPSEEK_MODEL
     research_payload = {
-        "model": resolved_model,
+        "model": resolved["model"],
         "messages": [
             {"role": "system", "content": "You are a rigorous Chinese AI industry editor."},
             {"role": "user", "content": build_research_prompt(now_local, config, items)},
         ],
         "temperature": 0.2,
     }
-    research_response = request_deepseek(research_payload, api_key, api_url)
+    research_response = request_deepseek(research_payload, resolved["api_key"], resolved["api_url"])
     research_notes = strip_markdown_fence(extract_choice_text(research_response))
     if not research_notes:
         raise BriefGenerationError("DeepSeek research pass returned empty output.")
 
     final_payload = {
-        "model": resolved_model,
+        "model": resolved["model"],
         "messages": [
             {"role": "system", "content": "You write concise Chinese executive briefings."},
             {"role": "user", "content": build_final_prompt(now_local, config, template_text, research_notes)},
         ],
         "temperature": 0.2,
     }
-    final_response = request_deepseek(final_payload, api_key, api_url)
+    final_response = request_deepseek(final_payload, resolved["api_key"], resolved["api_url"])
     report_markdown = strip_markdown_fence(extract_choice_text(final_response))
     if not report_markdown:
         raise BriefGenerationError("DeepSeek drafting pass returned empty output.")
