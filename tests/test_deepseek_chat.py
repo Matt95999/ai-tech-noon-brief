@@ -138,8 +138,13 @@ class DeepSeekCollectorTests(unittest.TestCase):
         config["slug"] = "us-iran-conflict-daily"
         config["topic_name"] = "美伊冲突每日简报"
         config["impact_policy"] = {**config["impact_policy"], "min_high_confidence_items": 3}
-        with mock.patch.object(deepseek_chat, "collect_rss_items", return_value=self.items[:1]):
-            result = deepseek_chat.collect_deepseek_report(self.now, config, self.template, "deepseek-chat")
+        with mock.patch.object(
+            deepseek_chat,
+            "resolve_deepseek_config",
+            return_value={"api_url": "https://api.deepseek.com/chat/completions", "model": "deepseek-chat"},
+        ):
+            with mock.patch.object(deepseek_chat, "collect_rss_items", return_value=self.items[:1]):
+                result = deepseek_chat.collect_deepseek_report(self.now, config, self.template, "deepseek-chat")
         self.assertIn("## Latest Developments", result["report_markdown"])
         self.assertIn("## Financial / Macro Pulse", result["report_markdown"])
         self.assertIn("## Source Log", result["report_markdown"])

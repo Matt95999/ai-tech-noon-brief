@@ -34,6 +34,7 @@ jobs:
       SMTP_USE_TLS: ${{ secrets.SMTP_USE_TLS || vars.SMTP_USE_TLS || 'true' }}
       EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
       EMAIL_TO: ${{ secrets.EMAIL_TO }}
+      EMAIL_SUBJECT_PREFIX: 美国-伊朗冲突每日简报
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
