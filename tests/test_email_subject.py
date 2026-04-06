@@ -16,6 +16,29 @@ from scripts.send_email_report import build_message
 
 
 class EmailSubjectTests(unittest.TestCase):
+    def test_report_title_is_used_when_no_subject_prefix_is_provided(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report_path = Path(tmpdir) / "2026-04-06.md"
+            report_path.write_text("# 美国-伊朗冲突每日简报\n\n## Executive Summary\n", encoding="utf-8")
+
+            old_env = {key: os.environ.get(key) for key in ("EMAIL_FROM", "EMAIL_TO", "EMAIL_SUBJECT_PREFIX")}
+            os.environ["EMAIL_FROM"] = "sender@example.com"
+            os.environ["EMAIL_TO"] = "receiver@example.com"
+            os.environ.pop("EMAIL_SUBJECT_PREFIX", None)
+            try:
+                message = build_message(
+                    report_path,
+                    allow_placeholder=False,
+                )
+            finally:
+                for key, value in old_env.items():
+                    if value is None:
+                        os.environ.pop(key, None)
+                    else:
+                        os.environ[key] = value
+
+            self.assertEqual(message["Subject"], "美国-伊朗冲突每日简报（2026-04-06）")
+
     def test_profile_subject_prefix_overrides_default(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             report_path = Path(tmpdir) / "2026-03-28.md"

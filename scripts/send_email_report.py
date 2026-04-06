@@ -101,8 +101,24 @@ def validate_report(body: str) -> None:
         raise BriefGenerationError(f"Report validation failed; missing sections: {', '.join(missing)}")
 
 
+def extract_report_title(report_path: Path) -> str:
+    try:
+        for raw_line in report_path.read_text(encoding="utf-8").splitlines():
+            line = raw_line.strip()
+            if line.startswith("# "):
+                return line[2:].strip()
+    except OSError:
+        return ""
+    return ""
+
+
 def build_subject(report_path: Path, subject_prefix: Optional[str] = None) -> str:
-    prefix = (subject_prefix or os.environ.get("EMAIL_SUBJECT_PREFIX", "AI/科技行业中午简报")).strip()
+    prefix = (
+        subject_prefix
+        or os.environ.get("EMAIL_SUBJECT_PREFIX", "").strip()
+        or extract_report_title(report_path)
+        or "AI/科技行业中午简报"
+    ).strip()
     prefix = prefix or "AI/科技行业中午简报"
     return f"{prefix}（{report_path.stem}）"
 
