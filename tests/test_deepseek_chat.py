@@ -73,6 +73,17 @@ class DeepSeekCollectorTests(unittest.TestCase):
         self.assertEqual(result["mode"], "low-signal-filtered-rss")
         self.assertTrue(result["degraded"])
 
+    def test_low_signal_report_uses_us_iran_sections(self) -> None:
+        config = dict(self.config)
+        config["slug"] = "us-iran-conflict-daily"
+        config["topic_name"] = "美伊冲突每日简报"
+        config["impact_policy"] = {**config["impact_policy"], "min_high_confidence_items": 3}
+        with mock.patch.object(deepseek_chat, "collect_rss_items", return_value=self.items[:1]):
+            result = deepseek_chat.collect_deepseek_report(self.now, config, self.template, "deepseek-chat")
+        self.assertIn("## Latest Developments", result["report_markdown"])
+        self.assertIn("## Financial / Macro Pulse", result["report_markdown"])
+        self.assertIn("## Source Log", result["report_markdown"])
+
     def test_collect_deepseek_report_raises_on_empty_model_output(self) -> None:
         old_env = {key: os.environ.get(key) for key in ("DEEPSEEK_API_URL", "DEEPSEEK_API_KEY")}
         os.environ["DEEPSEEK_API_URL"] = "https://example.com/chat/completions"

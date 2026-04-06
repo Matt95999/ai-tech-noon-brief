@@ -188,6 +188,7 @@ def build_low_signal_research_notes(now_local: datetime, config: dict, items: li
 
 
 def build_low_signal_report(now_local: datetime, config: dict) -> str:
+    slug = config.get("slug")
     companies = config.get("focus_companies", [])[:4]
     lines = [
         f"# {config['topic_name']}",
@@ -199,14 +200,45 @@ def build_low_signal_report(now_local: datetime, config: dict) -> str:
         "- 无重大新增。过去 24 小时未出现足够高置信、且具有较大影响力的 AI 动态。",
         "- 本轮继续保持严格信源纪律，避免把低影响或二手噪音写进正式晚报。",
         "",
-        "## Major Developments",
-        "- 无重大新增。",
-        "- 继续观察模型发布、资本开支、监管政策与重大合作是否形成新催化。",
-        "",
-        "## Company Watch",
     ]
-    for company in companies:
-        lines.extend([f"### {company}", "- 无重大新增。", "- 继续跟踪官方发布、财报、合作与产品更新。"])
+    if slug == "us-iran-conflict-daily":
+        lines.extend(
+            [
+                "## Latest Developments",
+                "- 无重大新增。过去 24 小时未出现足够高置信、且具有较大影响力的战事、外交或能源新增。",
+                "- 继续观察停火、霍尔木兹通航、制裁与核设施风险是否形成新催化。",
+                "",
+                "## Country / Geopolitical Impact",
+                "### United States",
+                "- 无重大新增。",
+                "- 继续跟踪美国官方表态与军事部署变化。",
+                "",
+                "### Iran",
+                "- 无重大新增。",
+                "- 继续跟踪伊朗官方表态、反制动作与能源设施风险。",
+                "",
+                "### Israel / Gulf / Major Powers",
+                "- 无重大新增。",
+                "- 继续跟踪以色列、海湾国家及主要大国的外交与安全动作。",
+                "",
+                "## Financial / Macro Pulse",
+                "- 无重大新增。暂未形成足以改变市场定价的高置信新增。",
+                "- 继续跟踪原油、天然气、黄金、美元、美债与航运保险价格变化。",
+                "",
+            ]
+        )
+    else:
+        lines.extend(
+            [
+                "## Major Developments",
+                "- 无重大新增。",
+                "- 继续观察模型发布、资本开支、监管政策与重大合作是否形成新催化。",
+                "",
+                "## Company Watch",
+            ]
+        )
+        for company in companies:
+            lines.extend([f"### {company}", "- 无重大新增。", "- 继续跟踪官方发布、财报、合作与产品更新。"])
     lines.extend(
         [
             "",
