@@ -19,6 +19,14 @@ class RunProfileTests(unittest.TestCase):
         self.assertIn("## Source Log", report)
         self.assertIn("Jensen Huang / NVIDIA", report)
 
+    def test_us_iran_degraded_report_preserves_macro_section(self) -> None:
+        config = {"slug": "us-iran-conflict-daily", "topic_name": "美伊冲突每日简报"}
+        report = build_degraded_report(datetime(2026, 4, 6, 12, 0), config, "invalid key")
+        self.assertIn("## Executive Summary", report)
+        self.assertIn("## Latest Developments", report)
+        self.assertIn("## Financial / Macro Pulse", report)
+        self.assertIn("## Source Log", report)
+
     def test_main_degrades_when_deepseek_config_is_invalid(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)

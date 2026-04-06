@@ -124,7 +124,8 @@ def build_degraded_research_notes(now_local: datetime, config: dict, reason: str
 def build_structured_degraded_report(now_local: datetime, config: dict, reason: str) -> str:
     date_str = now_local.strftime("%Y-%m-%d")
     generated_at = now_local.strftime("%Y-%m-%d %H:%M %Z")
-    if config.get("slug") == "ai-frontier-daily":
+    slug = config.get("slug")
+    if slug == "ai-frontier-daily":
         company_headings = ["Jensen Huang / NVIDIA", "Google", "Anthropic", "DeepSeek"]
     else:
         company_headings = config.get("focus_companies", [])[:4] or ["OpenAI", "Anthropic", "Google", "DeepSeek"]
@@ -141,12 +142,38 @@ def build_structured_degraded_report(now_local: datetime, config: dict, reason: 
         "- 影响：继续按时发送，避免简报断档，但本轮不扩写未核实细节。",
         "",
     ]
-    if config.get("slug") == "ai-frontier-daily":
+    if slug == "ai-frontier-daily":
         body.extend(
             [
                 "## Macro / Market Pulse",
                 "- 无重大新增。由于模型整理未完成，本次不扩展市场判断。",
                 "- 关注点：待链路恢复后补跑，继续观察模型、算力与 Agent 生态变化。",
+                "",
+            ]
+        )
+    elif slug == "us-iran-conflict-daily":
+        body.extend(
+            [
+                "## Latest Developments",
+                "- 无重大新增。本次模型整理链路未完成，系统未扩写未经核验的战事、外交或能源细节。",
+                "- 关注点：待链路恢复后补跑，继续观察停火进展、霍尔木兹通航与制裁变化。",
+                "",
+                "## Country / Geopolitical Impact",
+                "### United States",
+                "- 无重大新增。",
+                "- 继续跟踪白宫、国防部与国务院的正式表态。",
+                "",
+                "### Iran",
+                "- 无重大新增。",
+                "- 继续跟踪伊朗官方表态、军事动作与能源设施风险。",
+                "",
+                "### Israel / Gulf / Major Powers",
+                "- 无重大新增。",
+                "- 继续跟踪以色列、海湾国家及中俄欧等主要行为体的政策变化。",
+                "",
+                "## Financial / Macro Pulse",
+                "- 无重大新增。由于模型整理未完成，本次不扩展油价、通胀或央行路径判断。",
+                "- 关注点：待链路恢复后补跑，继续观察原油、天然气、黄金、美元与航运保险价格。",
                 "",
             ]
         )
@@ -160,17 +187,18 @@ def build_structured_degraded_report(now_local: datetime, config: dict, reason: 
             ]
         )
 
-    body.extend(["## Company Watch"])
-    for company in company_headings:
-        body.extend(
-            [
-                f"### {company}",
-                "- 无重大新增。",
-                "- 继续跟踪官方发布、财报、合作与产品更新。",
-                "",
-            ]
-        )
-    if config.get("slug") == "ai-frontier-daily":
+    if slug not in {"us-iran-conflict-daily"}:
+        body.extend(["## Company Watch"])
+        for company in company_headings:
+            body.extend(
+                [
+                    f"### {company}",
+                    "- 无重大新增。",
+                    "- 继续跟踪官方发布、财报、合作与产品更新。",
+                    "",
+                ]
+            )
+    if slug == "ai-frontier-daily":
         body.extend(
             [
                 "## GitHub Radar",
