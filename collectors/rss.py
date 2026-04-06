@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import ssl
 from datetime import datetime, timedelta
 from urllib import error, request
@@ -47,6 +48,52 @@ def build_rss_queries(config: dict) -> list[str]:
     return query_pool
 
 
+def normalize_text(value: str) -> str:
+    value = value.lower().strip()
+    return re.sub(r"[^a-z0-9]+", " ", value).strip()
+
+
+def matches_publisher(source: str, publishers: list[str]) -> bool:
+    normalized_source = normalize_text(source)
+    for publisher in publishers:
+        normalized_publisher = normalize_text(publisher)
+        if normalized_publisher and (
+            normalized_publisher in normalized_source or normalized_source in normalized_publisher
+        ):
+            return True
+    return False
+
+
+def classify_source_tier(source: str, config: dict) -> str:
+    policy = config.get("source_policy", {})
+    primary_publishers = policy.get("primary_publishers", [])
+    secondary_publishers = policy.get("secondary_publishers", [])
+    if matches_publisher(source, primary_publishers):
+        return "primary"
+    if matches_publisher(source, secondary_publishers):
+        return "secondary"
+    return "unclassified"
+
+
+def collect_impact_matches(item: dict, config: dict) -> list[str]:
+    impact_keywords = config.get("impact_policy", {}).get("keywords", [])
+    haystack = " ".join(
+        [
+            str(item.get("title", "")),
+            str(item.get("source", "")),
+            str(item.get("company", "")),
+        ]
+    ).lower()
+    return [keyword for keyword in impact_keywords if keyword.lower() in haystack]
+
+
+def compute_confidence_score(item: dict) -> int:
+    tier_weight = {"primary": 3, "secondary": 2, "unclassified": 0}.get(item.get("source_tier", "unclassified"), 0)
+    company_weight = 1 if item.get("company") else 0
+    impact_weight = min(len(item.get("impact_matches", [])), 3)
+    return tier_weight * 10 + company_weight * 4 + impact_weight * 3
+
+
 def collect_rss_items(now_local: datetime, config: dict) -> list[dict]:
     timezone = ZoneInfo(config["timezone"])
     cutoff = now_local - timedelta(hours=int(config["lookback_hours"]))
@@ -75,17 +122,76 @@ def collect_rss_items(now_local: datetime, config: dict) -> list[dict]:
                 continue
             seen_links.add(link)
             matched_company = next((company for company in config["focus_companies"] if company.lower() in haystack), "")
-            items.append(
-                {
-                    "title": title,
-                    "link": link,
-                    "source": source or "Google News RSS",
-                    "published_at": pub_date,
-                    "company": matched_company,
-                }
-            )
+            item = {
+                "title": title,
+                "link": link,
+                "source": source or "Google News RSS",
+                "published_at": pub_date,
+                "company": matched_company,
+                "query": query,
+            }
+            item["source_tier"] = classify_source_tier(item["source"], config)
+            item["impact_matches"] = collect_impact_matches(item, config)
+            item["high_confidence"] = False
+            item["confidence_score"] = 0
+            items.append(item)
     items.sort(key=lambda item: item["published_at"], reverse=True)
     return items[:12]
+
+
+def filter_rss_items(items: list[dict], config: dict) -> list[dict]:
+    source_policy = config.get("source_policy", {})
+    impact_policy = config.get("impact_policy", {})
+    has_source_policy = bool(source_policy.get("primary_publishers") or source_policy.get("secondary_publishers"))
+    require_primary_source = bool(source_policy.get("require_primary_source", False))
+    require_impact_keywords = bool(impact_policy.get("keywords"))
+    max_candidates = int(impact_policy.get("max_candidates", 12))
+
+    filtered: list[dict] = []
+    for item in items:
+        source_tier = item.get("source_tier", "unclassified")
+        source_allowed = True
+        if has_source_policy:
+            source_allowed = source_tier == "primary" or (source_tier == "secondary" and not require_primary_source)
+
+        has_impact_signal = bool(item.get("impact_matches")) or bool(item.get("company"))
+        high_confidence = source_allowed and (has_impact_signal or not require_impact_keywords)
+        if not high_confidence:
+            continue
+
+        enriched = dict(item)
+        enriched["high_confidence"] = high_confidence
+        enriched["confidence_score"] = compute_confidence_score(enriched)
+        filtered.append(enriched)
+
+    filtered.sort(
+        key=lambda item: (
+            item.get("confidence_score", 0),
+            item.get("published_at").timestamp() if item.get("published_at") else 0,
+        ),
+        reverse=True,
+    )
+    return filtered[:max_candidates]
+
+
+def serialize_items(items: list[dict]) -> list[dict]:
+    serialized: list[dict] = []
+    for item in items:
+        serialized.append(
+            {
+                "title": item.get("title", ""),
+                "link": item.get("link", ""),
+                "source": item.get("source", ""),
+                "published_at": item.get("published_at").isoformat() if item.get("published_at") else "",
+                "company": item.get("company", ""),
+                "query": item.get("query", ""),
+                "source_tier": item.get("source_tier", "unclassified"),
+                "impact_matches": list(item.get("impact_matches", [])),
+                "confidence_score": item.get("confidence_score", 0),
+                "high_confidence": bool(item.get("high_confidence", False)),
+            }
+        )
+    return serialized
 
 
 def build_rss_research_notes(now_local: datetime, config: dict, items: list[dict]) -> str:
@@ -117,8 +223,9 @@ def build_rss_research_notes(now_local: datetime, config: dict, items: list[dict
         date_str = item["published_at"].strftime("%Y-%m-%d")
         company = item["company"] or "-"
         claim = item["title"]
+        source_tier = item.get("source_tier", "unclassified")
         why = f"反映 {config['topic_name']} 近期产品、资本开支、产业链或公司动作。"
-        key_findings.append(f"- {date_str}：{claim} 来源：{item['source']} {item['link']}")
+        key_findings.append(f"- {date_str}：{claim} 来源：{item['source']}（{source_tier}） {item['link']}")
         evidence_rows.append(f"| {date_str} | News | {company} | {claim} | {why} | {item['link']} |")
         if item["company"]:
             company_watch.append(f"- {item['company']}：{claim} ({item['source']}) {item['link']}")
@@ -143,7 +250,7 @@ def build_rss_research_notes(now_local: datetime, config: dict, items: list[dict
             *evidence_rows,
             "",
             "## Source Quality Notes",
-            "- 本轮使用公开 RSS 抓取；优点是无需私有 API 即可持续运行，缺点是摘要深度弱于大模型深度整理。",
+            "- 本轮使用公开 RSS 抓取并叠加信源/影响力规则；优点是稳定，缺点是摘要深度弱于大模型精排。",
         ]
     )
 
@@ -237,14 +344,13 @@ def build_rss_report(now_local: datetime, config: dict, items: list[dict]) -> st
 
 
 def collect_rss_report(now_local: datetime, config: dict) -> dict:
-    items = collect_rss_items(now_local, config)
+    items = filter_rss_items(collect_rss_items(now_local, config), config)
     return {
         "mode": "live-rss",
         "research_notes": build_rss_research_notes(now_local, config, items),
         "report_markdown": build_rss_report(now_local, config, items),
-        "research_response": {"mode": "rss-live", "items": items},
+        "research_response": {"mode": "rss-live", "items": serialize_items(items)},
         "final_response": {"mode": "rss-live"},
         "items_found": len(items),
         "degraded": not bool(items),
     }
-

@@ -8,7 +8,8 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_MODEL = "gpt-5"
+DEFAULT_MODEL = "gpt-5.4-mini"
+DEFAULT_DEEPSEEK_MODEL = "deepseek-chat"
 DEFAULT_TIMEZONE = "Asia/Shanghai"
 DEFAULT_LOOKBACK_HOURS = 24
 OPENAI_API_URL = "https://api.openai.com/v1/responses"
@@ -37,6 +38,16 @@ def parse_csv_list(value: str | None) -> list[str]:
     if not value:
         return []
     return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def normalize_string_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, str):
+        return parse_csv_list(value.replace(";", ","))
+    return [str(value).strip()] if str(value).strip() else []
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -89,13 +100,25 @@ def merge_config(
         else int(os.environ.get("LOOKBACK_HOURS", str(config.get("lookback_hours", DEFAULT_LOOKBACK_HOURS))))
     )
     config["topic_name"] = config.get("topic_name", "AI/科技行业中午简报")
-    config["focus_companies"] = list(config.get("focus_companies", []))
-    config["include_keywords"] = list(config.get("include_keywords", []))
-    config["exclude_keywords"] = list(config.get("exclude_keywords", []))
+    config["focus_companies"] = normalize_string_list(config.get("focus_companies", []))
+    config["include_keywords"] = normalize_string_list(config.get("include_keywords", []))
+    config["exclude_keywords"] = normalize_string_list(config.get("exclude_keywords", []))
     config["retention_days"] = int(config.get("retention_days", 14))
     delivery = dict(config.get("delivery", {}))
     delivery["email_subject_prefix"] = delivery.get("email_subject_prefix", config["topic_name"])
     delivery["attach_markdown"] = bool(delivery.get("attach_markdown", True))
     config["delivery"] = delivery
-    return config
 
+    source_policy = dict(config.get("source_policy", {}))
+    source_policy["primary_publishers"] = normalize_string_list(source_policy.get("primary_publishers", []))
+    source_policy["secondary_publishers"] = normalize_string_list(source_policy.get("secondary_publishers", []))
+    source_policy["require_primary_source"] = bool(source_policy.get("require_primary_source", False))
+    config["source_policy"] = source_policy
+
+    impact_policy = dict(config.get("impact_policy", {}))
+    impact_policy["keywords"] = normalize_string_list(impact_policy.get("keywords", []))
+    impact_policy["max_candidates"] = int(impact_policy.get("max_candidates", 12))
+    impact_policy["min_high_confidence_items"] = int(impact_policy.get("min_high_confidence_items", 1))
+    impact_policy["allow_low_signal_fallback"] = bool(impact_policy.get("allow_low_signal_fallback", True))
+    config["impact_policy"] = impact_policy
+    return config

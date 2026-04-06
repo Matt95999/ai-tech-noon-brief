@@ -1,4 +1,4 @@
-name: AI Brief Automation
+name: AI Brief Validation
 
 on:
   schedule:
@@ -9,40 +9,29 @@ on:
         description: "Profile to run"
         required: false
         default: "ai-frontier-daily"
-      dry_run:
-        description: "Run with sample data only"
-        required: false
-        default: "false"
 
 concurrency:
   group: ai-tech-noon-brief-${{ github.event.inputs.profile || vars.BRIEF_DEFAULT_PROFILE || 'ai-frontier-daily' }}
   cancel-in-progress: false
 
 jobs:
-  generate-and-send:
+  validate-profile:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       contents: read
     env:
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5' }}
+      OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5.4-mini' }}
       REPORT_TIMEZONE: ${{ vars.REPORT_TIMEZONE || 'Asia/Shanghai' }}
       LOOKBACK_HOURS: ${{ vars.LOOKBACK_HOURS || '24' }}
       BRIEF_DEFAULT_PROFILE: ${{ vars.BRIEF_DEFAULT_PROFILE || 'ai-frontier-daily' }}
       BRIEF_PROFILE: ${{ github.event.inputs.profile || vars.BRIEF_DEFAULT_PROFILE || 'ai-frontier-daily' }}
-      SMTP_HOST: ${{ secrets.SMTP_HOST }}
-      SMTP_PORT: ${{ secrets.SMTP_PORT }}
-      SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
-      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
-      EMAIL_TO: ${{ secrets.EMAIL_TO }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
@@ -56,13 +45,9 @@ jobs:
         run: |
           python3 -m unittest discover -s tests
 
-      - name: Run report pipeline
+      - name: Run dry-run validation pipeline
         run: |
-          if [ "${{ github.event.inputs.dry_run || 'false' }}" = "true" ]; then
-            ./run_brief.sh --dry-run
-          else
-            ./run_brief.sh
-          fi
+          ./run_brief.sh --dry-run
 
       - name: Validate report structure
         run: |
@@ -74,7 +59,7 @@ jobs:
 
       - name: Upload report artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ai-brief-${{ github.run_id }}
           path: |

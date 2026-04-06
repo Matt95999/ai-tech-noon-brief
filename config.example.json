@@ -30,10 +30,20 @@
     "celebrity",
     "gaming rumor"
   ],
+  "source_policy": {
+    "primary_publishers": [],
+    "secondary_publishers": [],
+    "require_primary_source": false
+  },
+  "impact_policy": {
+    "keywords": [],
+    "max_candidates": 8,
+    "min_high_confidence_items": 1,
+    "allow_low_signal_fallback": true
+  },
   "delivery": {
     "email_subject_prefix": "AI/科技行业中午简报",
     "attach_markdown": true
   },
   "retention_days": 14
 }
-
