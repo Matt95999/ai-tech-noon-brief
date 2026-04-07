@@ -1,0 +1,100 @@
+name: Advanced Packaging Daily Live
+
+on:
+  schedule:
+    - cron: "30 0 * * *"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Optional Beijing date (YYYY-MM-DD)"
+        required: false
+
+concurrency:
+  group: advanced-packaging-daily-live
+  cancel-in-progress: false
+
+jobs:
+  generate-and-send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    env:
+      BRIEF_PROFILE: advanced-packaging-daily
+      REPORT_TIMEZONE: Asia/Shanghai
+      LOOKBACK_HOURS: "24"
+      DEEPSEEK_API_URL: ${{ secrets.DEEPSEEK_API_URL }}
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+      DEEPSEEK_MODEL: ${{ secrets.DEEPSEEK_MODEL || vars.DEEPSEEK_MODEL || 'deepseek-chat' }}
+      SMTP_HOST: ${{ secrets.SMTP_HOST }}
+      SMTP_PORT: ${{ secrets.SMTP_PORT }}
+      SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      SMTP_USE_SSL: ${{ secrets.SMTP_USE_SSL || vars.SMTP_USE_SSL || 'false' }}
+      SMTP_USE_TLS: ${{ secrets.SMTP_USE_TLS || vars.SMTP_USE_TLS || 'true' }}
+      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+      EMAIL_TO: ${{ secrets.EMAIL_TO }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Copy example config when missing
+        run: |
+          if [ ! -f config.json ]; then
+            cp config.example.json config.json
+          fi
+
+      - name: Run unit tests
+        run: |
+          python3 -m unittest discover -s tests
+
+      - name: Validate DeepSeek config
+        run: |
+          python3 scripts/run_profile.py --profile advanced-packaging-daily --check-deepseek
+
+      - name: Validate SMTP config
+        run: |
+          python3 scripts/send_email_report.py --check-smtp
+
+      - name: Generate daily brief
+        run: |
+          export SKIP_EMAIL=1
+          if [ -n "${{ github.event.inputs.date }}" ]; then
+            ./run_brief.sh --date "${{ github.event.inputs.date }}"
+          else
+            ./run_brief.sh
+          fi
+
+      - name: Validate report structure
+        run: |
+          if [ -n "${{ github.event.inputs.date }}" ]; then
+            REPORT_DATE="${{ github.event.inputs.date }}"
+          else
+            REPORT_DATE=$(TZ=Asia/Shanghai date +%F)
+          fi
+          REPORT_PATH="reports/${REPORT_DATE}.md"
+          test -s "$REPORT_PATH"
+          grep -q "Executive Summary" "$REPORT_PATH"
+          grep -q "Supply Chain Radar" "$REPORT_PATH"
+          grep -q "What Matters" "$REPORT_PATH"
+          grep -q "Source Log" "$REPORT_PATH"
+          printf 'REPORT_PATH=%s\n' "$REPORT_PATH" >> "$GITHUB_ENV"
+
+      - name: Send email
+        run: |
+          python3 scripts/send_email_report.py "$REPORT_PATH"
+
+      - name: Upload report artifacts
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: advanced-packaging-daily-${{ github.run_id }}
+          path: |
+            reports/
+            artifacts/
+            reviews/
