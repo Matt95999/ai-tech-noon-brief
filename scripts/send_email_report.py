@@ -18,7 +18,10 @@ from brief_utils import BriefGenerationError, get_bool_env, parse_csv_list, requ
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ENV_PATH = PROJECT_ROOT / ".env"
-REQUIRED_REPORT_SECTIONS = ("## Executive Summary", "## Source Log")
+REQUIRED_REPORT_SECTION_GROUPS = (
+    ("## Executive Summary", "## 结论"),
+    ("## Source Log", "## 来源"),
+)
 
 
 def load_dotenv(path: Path) -> None:
@@ -96,7 +99,7 @@ def validate_settings(settings: dict, allow_placeholder: bool = False, require_s
 
 
 def validate_report(body: str) -> None:
-    missing = [section for section in REQUIRED_REPORT_SECTIONS if section not in body]
+    missing = ["/".join(group) for group in REQUIRED_REPORT_SECTION_GROUPS if not any(section in body for section in group)]
     if missing:
         raise BriefGenerationError(f"Report validation failed; missing sections: {', '.join(missing)}")
 
@@ -200,7 +203,7 @@ def render_section_html(title: str, lines: list[str]) -> str:
             current_list_item = (current_list_item or []) + [line]
             continue
 
-        if title == "Source Log" and line.startswith(("1. ", "2. ", "3. ", "4. ", "5. ", "6. ", "7. ", "8. ", "9. ")):
+        if title in {"Source Log", "来源"} and line.startswith(("1. ", "2. ", "3. ", "4. ", "5. ", "6. ", "7. ", "8. ", "9. ")):
             parts.append(f"<p><strong>{apply_inline_formatting(line)}</strong></p>")
             continue
 
@@ -217,7 +220,13 @@ def render_section_html(title: str, lines: list[str]) -> str:
 def render_report_html(title: str, body: str) -> str:
     metadata, sections = parse_report_sections(body)
     metadata_html = "".join(f'<span class="meta-item">{apply_inline_formatting(line)}</span>' for line in metadata)
-    executive_summary = next((lines for section_title, lines in sections if section_title == "Executive Summary"), [])
+    summary_title = "Executive Summary"
+    executive_summary: list[str] = []
+    for section_title, lines in sections:
+        if section_title in {"Executive Summary", "结论"}:
+            summary_title = section_title
+            executive_summary = lines
+            break
     summary_items = [line[2:].strip() for line in executive_summary if line.strip().startswith("- ")]
     summary_html = "".join(f"<li>{apply_inline_formatting(item)}</li>" for item in summary_items[:5])
     sections_html = "".join(render_section_html(section_title, lines) for section_title, lines in sections)
@@ -289,7 +298,7 @@ def render_report_html(title: str, body: str) -> str:
           <div class="meta">{metadata_html}</div>
         </div>
         <div class="summary-card">
-          <h2>Executive Summary</h2>
+          <h2>{escape(summary_title)}</h2>
           <ul>{summary_html}</ul>
         </div>
         <div class="content">{sections_html}</div>
