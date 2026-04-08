@@ -12,7 +12,12 @@ if str(PROJECT_ROOT) not in sys.path:
 if str(PROJECT_ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 
-from collectors.github_search import extract_focus_labels, extract_readme_excerpt, select_top_repositories
+from collectors.github_search import (
+    build_github_report,
+    extract_focus_labels,
+    extract_readme_excerpt,
+    select_top_repositories,
+)
 
 
 class GitHubSearchTests(unittest.TestCase):
@@ -108,6 +113,33 @@ Run the tool with a terminal-first workflow and ship from GitHub Actions.
         self.assertIn("Codex", labels)
         self.assertIn("Claude Code", labels)
         self.assertIn("Gemini", labels)
+
+    def test_build_github_report_uses_short_section_titles(self) -> None:
+        now = datetime(2026, 4, 8, 9, 0, tzinfo=ZoneInfo("Asia/Shanghai"))
+        config = {"topic_name": "多模型开发 GitHub 日报"}
+        repos = [
+            {
+                "full_name": "openai/codex",
+                "description": "Codex CLI agent",
+                "readme_excerpt": "Codex CLI for coding tasks in the terminal.",
+                "focus_labels": ["Codex"],
+                "watchlisted": True,
+                "bucket": "watch",
+                "stars": 400,
+                "language": "Python",
+                "created_at": datetime(2026, 4, 1, 12, 0, tzinfo=ZoneInfo("UTC")),
+                "pushed_at": datetime(2026, 4, 8, 0, 0, tzinfo=ZoneInfo("UTC")),
+                "latest_release": None,
+                "html_url": "https://github.com/openai/codex",
+            }
+        ]
+        report = build_github_report(now, config, repos)
+        self.assertIn("## 结论", report)
+        self.assertIn("## 项目", report)
+        self.assertIn("## 官方", report)
+        self.assertIn("## 动作", report)
+        self.assertIn("## 来源", report)
+        self.assertNotIn("## Executive Summary", report)
 
 
 if __name__ == "__main__":

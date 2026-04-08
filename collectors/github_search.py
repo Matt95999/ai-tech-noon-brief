@@ -73,6 +73,7 @@ def extract_readme_excerpt(markdown_text: str, max_chars: int = 220) -> str:
         text = re.sub(r"`([^`]+)`", r"\1", line)
         text = re.sub(r"!\[[^\]]*\]\([^)]+\)", "", text)
         text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+        text = re.sub(r"https?://\S+", "", text)
         text = re.sub(r"\*\*([^*]+)\*\*", r"\1", text)
         text = re.sub(r"\*([^*]+)\*", r"\1", text)
         text = re.sub(r"^>\s*", "", text)
@@ -100,6 +101,22 @@ def extract_readme_excerpt(markdown_text: str, max_chars: int = 220) -> str:
     if len(excerpt) > max_chars:
         excerpt = excerpt[: max_chars - 1].rstrip() + "..."
     return excerpt
+
+
+def compact_display_text(value: str, max_chars: int = 120) -> str:
+    text = re.sub(r"https?://\S+", "", value or "")
+    text = re.sub(r"\s+", " ", text).strip(" -")
+    if not text:
+        return ""
+    for separator in ("。", ". ", "!", "?"):
+        if separator in text:
+            first_sentence = text.split(separator, 1)[0].strip()
+            if len(first_sentence) >= 18:
+                text = first_sentence
+                break
+    if len(text) > max_chars:
+        text = text[: max_chars - 1].rstrip() + "..."
+    return text
 
 
 def normalize_search_item(raw_item: dict, bucket: str, matched_query: str) -> dict:
@@ -371,6 +388,24 @@ def build_repo_summary(repo: dict, tzinfo) -> str:
     )
 
 
+def build_repo_reason(repo: dict, tzinfo) -> str:
+    release = repo.get("latest_release") or {}
+    if release.get("published_at"):
+        return "这是官方发布信号，优先级高于社区二手总结。"
+    if repo.get("watchlisted"):
+        return "这是重点观察仓库，适合持续跟踪真实功能和工作流变化。"
+    if repo.get("bucket") == "fresh":
+        return "短时间涨星快，说明这套玩法正在被开发者快速试用。"
+    return "仓库仍在持续更新，说明不是一次性热度，而是真实迭代中的项目。"
+
+
+def build_repo_signal(repo: dict, tzinfo) -> str:
+    return (
+        f"{describe_focus(repo)} | {repo['stars']} Stars | "
+        f"{format_absolute_date(repo.get('pushed_at'), tzinfo)} 更新 | {repo.get('language') or '-'}"
+    )
+
+
 def build_github_research_notes(now_local: datetime, config: dict, repos: list[dict]) -> str:
     window_start = now_local - timedelta(hours=int(config["lookback_hours"]))
     timezone_value = now_local.tzinfo or timezone.utc
@@ -437,8 +472,11 @@ def build_github_research_notes(now_local: datetime, config: dict, repos: list[d
 
 
 def build_try_line(repo: dict) -> str:
-    excerpt = repo.get("readme_excerpt") or repo.get("description") or "README 暂未提炼出足够清晰的一句话。"
-    return f"- {repo['full_name']}：{excerpt}"
+    excerpt = compact_display_text(
+        repo.get("readme_excerpt") or repo.get("description") or "README 暂未提炼出足够清晰的一句话。",
+        max_chars=110,
+    )
+    return f"- 先看 {repo['full_name']}：{excerpt or '建议直接打开 README 看示例和命令。'}"
 
 
 def build_github_report(now_local: datetime, config: dict, repos: list[dict]) -> str:
@@ -449,7 +487,9 @@ def build_github_report(now_local: datetime, config: dict, repos: list[dict]) ->
         f"日期: {now_local.strftime('%Y-%m-%d')}",
         f"生成时间: {now_local.strftime('%Y-%m-%d %H:%M %Z')}",
         "",
-        "## Executive Summary",
+        "只保留高信号仓库。先看结论，再决定点哪个链接。",
+        "",
+        "## 结论",
     ]
     if not repos:
         lines.extend(
@@ -458,17 +498,17 @@ def build_github_report(now_local: datetime, config: dict, repos: list[dict]) ->
                 "- 链路仍正常，说明今天更像低信号日，而不是抓取失败。",
                 "- 继续观察官方仓库 release、CLI、Agent 工作流和社区模板。",
                 "",
-                "## Ecosystem Radar",
+                "## 项目",
                 "- 无重大新增。",
                 "",
-                "## Official Watch",
+                "## 官方",
                 "- openai/codex：本轮未发现足够高信号的新 release 或新仓库事件。",
                 "- anthropics/claude-code-action：本轮未发现足够高信号的新 release 或新仓库事件。",
                 "",
-                "## What To Try Today",
+                "## 动作",
                 "- 保持观察，不强行追噪音项目。",
                 "",
-                "## Source Log",
+                "## 来源",
                 "1. GitHub Search Repositories",
                 "   https://api.github.com/search/repositories",
             ]
@@ -483,7 +523,7 @@ def build_github_report(now_local: datetime, config: dict, repos: list[dict]) ->
             f"- 本次覆盖到的生态包括 {top_focuses}，避免日报只盯单一工具链。",
             "- 目标不是穷举，而是帮你每天先抓到最值得试、最值得跟的 3-6 个动作。",
             "",
-            "## Ecosystem Radar",
+            "## 项目",
         ]
     )
 
@@ -491,14 +531,15 @@ def build_github_report(now_local: datetime, config: dict, repos: list[dict]) ->
         lines.extend(
             [
                 f"### {repo['full_name']}",
-                f"- 标签：{describe_focus(repo)}；{build_repo_summary(repo, timezone_value)}",
-                f"- 玩法速读：{repo.get('readme_excerpt') or repo.get('description') or 'README 摘要不足，建议直接点进仓库看示例。'}",
-                f"- 最近更新时间：{format_absolute_date(repo.get('pushed_at'), timezone_value)}；语言：{repo.get('language') or '-'}。",
+                f"- 一句话：{compact_display_text(build_repo_summary(repo, timezone_value), max_chars=120)}",
+                f"- 为什么看：{build_repo_reason(repo, timezone_value)}",
+                f"- 关键信号：{build_repo_signal(repo, timezone_value)}",
+                f"- 玩法速读：{compact_display_text(repo.get('readme_excerpt') or repo.get('description') or 'README 摘要不足，建议直接点进仓库看示例。', max_chars=120)}",
                 "",
             ]
         )
 
-    lines.append("## Official Watch")
+    lines.append("## 官方")
     watch_items = [repo for repo in repos if repo.get("watchlisted")]
     if not watch_items:
         lines.append("- 本轮未命中 watchlist 的高信号更新，建议继续跟踪官方仓库 release 与 README 变化。")
@@ -515,11 +556,11 @@ def build_github_report(now_local: datetime, config: dict, repos: list[dict]) ->
                 "建议继续跟踪 README、示例和 workflow 变化。"
             )
 
-    lines.extend(["", "## What To Try Today"])
+    lines.extend(["", "## 动作"])
     for repo in repos[:3]:
         lines.append(build_try_line(repo))
 
-    lines.extend(["", "## Source Log"])
+    lines.extend(["", "## 来源"])
     source_index = 1
     seen_sources: set[str] = set()
     for repo in repos:
