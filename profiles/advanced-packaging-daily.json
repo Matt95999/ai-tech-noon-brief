@@ -7,6 +7,20 @@
     "deepseek_chat",
     "rss"
   ],
+  "rss_queries": [
+    "advanced packaging semiconductor",
+    "CoWoS",
+    "HBM packaging",
+    "chiplet packaging",
+    "SoIC",
+    "Foveros",
+    "hybrid bonding semiconductor",
+    "ABF substrate AI",
+    "FCBGA AI",
+    "silicon photonics packaging",
+    "co-packaged optics semiconductor",
+    "advanced packaging China"
+  ],
   "template_path": "templates/advanced_packaging_daily_template.md",
   "focus_companies": [
     "TSMC",
@@ -29,11 +43,89 @@
     "Marvell",
     "Huawei"
   ],
+  "company_aliases": {
+    "TSMC": [
+      "Taiwan Semiconductor",
+      "Taiwan Semiconductor Manufacturing",
+      "台积电"
+    ],
+    "Intel Foundry": [
+      "Intel",
+      "IFS",
+      "英特尔"
+    ],
+    "Samsung Foundry": [
+      "Samsung",
+      "Samsung Electronics",
+      "三星"
+    ],
+    "ASE": [
+      "ASE Technology",
+      "ASE Holdings",
+      "日月光"
+    ],
+    "Amkor": [
+      "Amkor Technology",
+      "安靠"
+    ],
+    "JCET": [
+      "JCET Group",
+      "Jiangsu Changjiang Electronics Technology",
+      "长电科技"
+    ],
+    "Tongfu Microelectronics": [
+      "Tongfu",
+      "Tongfu Micro",
+      "通富微电"
+    ],
+    "Huatian Technology": [
+      "Huatian",
+      "华天科技"
+    ],
+    "Shennan Circuits": [
+      "Shennan",
+      "深南电路"
+    ],
+    "Unimicron": [
+      "欣兴电子"
+    ],
+    "Ibiden": [
+      "揖斐电"
+    ],
+    "AT&S": [
+      "AT and S"
+    ],
+    "Micron": [
+      "Micron Technology",
+      "美光"
+    ],
+    "SK hynix": [
+      "SK Hynix",
+      "海力士"
+    ],
+    "NVIDIA": [
+      "Nvidia",
+      "英伟达"
+    ],
+    "AMD": [
+      "Advanced Micro Devices",
+      "超威"
+    ],
+    "Broadcom": [
+      "博通"
+    ],
+    "Huawei": [
+      "华为"
+    ]
+  },
   "include_keywords": [
     "advanced packaging",
+    "packaging",
     "CoWoS",
     "HBM",
     "chiplet",
+    "2.5D",
+    "3D IC",
     "SoIC",
     "Foveros",
     "EMIB",
@@ -86,17 +178,31 @@
       "Bloomberg",
       "Financial Times",
       "Nikkei Asia",
+      "CNBC",
       "EE Times",
       "Semiconductor Engineering",
       "DigiTimes",
+      "TrendForce",
       "Tom's Hardware"
+    ],
+    "exclude_publishers": [
+      "TipRanks",
+      "GuruFocus",
+      "TradingKey",
+      "ABC Money",
+      "Asia Business Outlook",
+      "Gadgets 360",
+      "IT Voice Media"
     ],
     "require_primary_source": false
   },
   "impact_policy": {
     "keywords": [
+      "packaging",
       "advanced packaging",
       "CoWoS",
+      "2.5D",
+      "3D IC",
       "SoIC",
       "InFO",
       "Foveros",
@@ -109,7 +215,9 @@
       "chiplet",
       "UCIe",
       "HBM",
+      "interposer",
       "substrate",
+      "glass substrate",
       "ABF",
       "FCBGA",
       "fan-out",

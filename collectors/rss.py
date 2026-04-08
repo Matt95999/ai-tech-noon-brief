@@ -4,6 +4,7 @@ import json
 import re
 import ssl
 from datetime import datetime, timedelta
+from html import unescape
 from urllib import error, request
 from urllib.parse import quote_plus
 from xml.etree import ElementTree as ET
@@ -40,20 +41,30 @@ def parse_pub_date(value: str, fallback_tz: ZoneInfo) -> datetime | None:
 
 
 def build_rss_queries(config: dict) -> list[str]:
-    custom_queries = [str(query).strip() for query in config.get("rss_queries", []) if str(query).strip()]
-    if custom_queries:
-        return custom_queries
-    companies = list(config["focus_companies"])[:6]
-    keywords = list(config["include_keywords"])[:4]
-    query_pool = companies + keywords
+    explicit_queries = list(dict.fromkeys(config.get("rss_queries", [])))
+    if explicit_queries:
+        return explicit_queries[:12]
+
+    companies = list(config["focus_companies"])[:4]
+    keywords = list(config["include_keywords"])[:6]
+    query_pool = keywords + companies
+    if companies and keywords:
+        primary_keyword = keywords[0]
+        query_pool.extend(f'"{company}" "{primary_keyword}"' for company in companies[:3])
     if not query_pool:
         query_pool = [config["topic_name"], "research brief", "industry news", "company update"]
-    return query_pool
+    return list(dict.fromkeys(query_pool))[:12]
+
+
+def clean_rss_description(value: str) -> str:
+    text = unescape(value or "")
+    text = re.sub(r"<[^>]+>", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
 
 
 def normalize_text(value: str) -> str:
     value = value.lower().strip()
-    return re.sub(r"[^a-z0-9]+", " ", value).strip()
+    return re.sub(r"[\W_]+", " ", value, flags=re.UNICODE).strip()
 
 
 def matches_publisher(source: str, publishers: list[str]) -> bool:
@@ -67,6 +78,17 @@ def matches_publisher(source: str, publishers: list[str]) -> bool:
     return False
 
 
+def match_keyword(haystack: str, keyword: str) -> bool:
+    normalized_haystack = normalize_text(haystack)
+    normalized_keyword = normalize_text(keyword)
+    return bool(normalized_keyword) and normalized_keyword in normalized_haystack
+
+
+def is_excluded_publisher(source: str, config: dict) -> bool:
+    policy = config.get("source_policy", {})
+    return matches_publisher(source, policy.get("exclude_publishers", []))
+
+
 def classify_source_tier(source: str, config: dict) -> str:
     policy = config.get("source_policy", {})
     primary_publishers = policy.get("primary_publishers", [])
@@ -78,6 +100,28 @@ def classify_source_tier(source: str, config: dict) -> str:
     return "unclassified"
 
 
+def match_company(item: dict, config: dict) -> str:
+    haystack = " ".join(
+        [
+            str(item.get("title", "")),
+            str(item.get("source", "")),
+            str(item.get("description", "")),
+        ]
+    )
+    alias_map = config.get("company_aliases") or {}
+    if alias_map:
+        for canonical, aliases in alias_map.items():
+            for alias in aliases:
+                if match_keyword(haystack, alias):
+                    return canonical
+        return ""
+
+    for company in config.get("focus_companies", []):
+        if match_keyword(haystack, company):
+            return company
+    return ""
+
+
 def collect_impact_matches(item: dict, config: dict) -> list[str]:
     impact_keywords = config.get("impact_policy", {}).get("keywords", [])
     haystack = " ".join(
@@ -85,13 +129,14 @@ def collect_impact_matches(item: dict, config: dict) -> list[str]:
             str(item.get("title", "")),
             str(item.get("source", "")),
             str(item.get("company", "")),
+            str(item.get("description", "")),
         ]
-    ).lower()
-    return [keyword for keyword in impact_keywords if keyword.lower() in haystack]
+    )
+    return [keyword for keyword in impact_keywords if match_keyword(haystack, keyword)]
 
 
 def compute_confidence_score(item: dict) -> int:
-    tier_weight = {"primary": 3, "secondary": 2, "unclassified": 0}.get(item.get("source_tier", "unclassified"), 0)
+    tier_weight = {"primary": 3, "secondary": 2, "unclassified": 1}.get(item.get("source_tier", "unclassified"), 0)
     company_weight = 1 if item.get("company") else 0
     impact_weight = min(len(item.get("impact_matches", [])), 3)
     return tier_weight * 10 + company_weight * 4 + impact_weight * 3
@@ -115,24 +160,28 @@ def collect_rss_items(now_local: datetime, config: dict) -> list[dict]:
             link = (node.findtext("link") or "").strip()
             pub_date_text = (node.findtext("pubDate") or "").strip()
             source = (node.findtext("source") or "").strip()
+            description = clean_rss_description(node.findtext("description") or "")
             pub_date = parse_pub_date(pub_date_text, timezone)
-            haystack = f"{title} {source}".lower()
+            haystack = f"{title} {source} {description}".lower()
             if not title or not link or not pub_date or pub_date < cutoff:
                 continue
             if any(term in haystack for term in exclude_terms):
                 continue
+            if is_excluded_publisher(source or "Google News RSS", config):
+                continue
             if link in seen_links:
                 continue
             seen_links.add(link)
-            matched_company = next((company for company in config["focus_companies"] if company.lower() in haystack), "")
             item = {
                 "title": title,
                 "link": link,
                 "source": source or "Google News RSS",
+                "description": description,
                 "published_at": pub_date,
-                "company": matched_company,
+                "company": "",
                 "query": query,
             }
+            item["company"] = match_company(item, config)
             item["source_tier"] = classify_source_tier(item["source"], config)
             item["impact_matches"] = collect_impact_matches(item, config)
             item["high_confidence"] = False
@@ -160,9 +209,19 @@ def filter_rss_items(items: list[dict], config: dict) -> list[dict]:
         if has_source_policy:
             source_allowed = source_tier == "primary" or (source_tier == "secondary" and not require_primary_source)
 
-        has_impact_signal = bool(item.get("impact_matches")) or bool(item.get("company"))
-        high_confidence = source_allowed and (has_impact_signal or not require_impact_keywords)
-        if not high_confidence:
+        impact_match_count = len(item.get("impact_matches", []))
+        signal_score = impact_match_count + (1 if item.get("company") else 0)
+        has_impact_signal = impact_match_count > 0
+        if require_impact_keywords:
+            high_confidence = source_allowed and has_impact_signal
+        else:
+            high_confidence = source_allowed and (has_impact_signal or bool(item.get("company")))
+        strong_unclassified = (
+            source_tier == "unclassified"
+            and not require_primary_source
+            and signal_score >= 2
+        )
+        if not high_confidence and not strong_unclassified:
             continue
 
         enriched = dict(item)
@@ -188,6 +247,7 @@ def serialize_items(items: list[dict]) -> list[dict]:
                 "title": item.get("title", ""),
                 "link": item.get("link", ""),
                 "source": item.get("source", ""),
+                "description": item.get("description", ""),
                 "published_at": item.get("published_at").isoformat() if item.get("published_at") else "",
                 "company": item.get("company", ""),
                 "query": item.get("query", ""),
