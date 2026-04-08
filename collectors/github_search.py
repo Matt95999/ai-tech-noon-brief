@@ -33,6 +33,16 @@ def request_github_json(url: str, token: str | None = None, allow_404: bool = Fa
     try:
         with request.urlopen(req, timeout=90) as response:
             return json.loads(response.read().decode("utf-8"))
+    except error.HTTPError as exc:
+        if allow_404 and exc.code == 404:
+            return None
+        details = exc.read().decode("utf-8", errors="ignore")
+        if exc.code == 403 and "rate limit" in details.lower():
+            raise BriefGenerationError(
+                "GitHub API rate limit exceeded. Set GITHUB_TOKEN for higher limits, "
+                "or rely on GitHub Actions where github.token is injected automatically."
+            ) from exc
+        raise BriefGenerationError(f"GitHub API request failed: {exc.code} {details}") from exc
     except error.URLError as exc:
         if isinstance(exc.reason, ssl.SSLCertVerificationError):
             insecure_context = ssl._create_unverified_context()
@@ -47,16 +57,6 @@ def request_github_json(url: str, token: str | None = None, allow_404: bool = Fa
                     f"GitHub API request failed: {insecure_http_error.code} {details}"
                 ) from insecure_http_error
         raise BriefGenerationError(f"GitHub API request failed: {exc}") from exc
-    except error.HTTPError as exc:
-        if allow_404 and exc.code == 404:
-            return None
-        details = exc.read().decode("utf-8", errors="ignore")
-        if exc.code == 403 and "rate limit" in details.lower():
-            raise BriefGenerationError(
-                "GitHub API rate limit exceeded. Set GITHUB_TOKEN for higher limits, "
-                "or rely on GitHub Actions where github.token is injected automatically."
-            ) from exc
-        raise BriefGenerationError(f"GitHub API request failed: {exc.code} {details}") from exc
 
 
 def parse_github_datetime(value: str) -> datetime:
