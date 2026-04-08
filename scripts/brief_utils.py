@@ -104,6 +104,19 @@ def merge_config(
     config["include_keywords"] = normalize_string_list(config.get("include_keywords", []))
     config["exclude_keywords"] = normalize_string_list(config.get("exclude_keywords", []))
     config["rss_queries"] = normalize_string_list(config.get("rss_queries", []))
+    config["github_queries"] = normalize_string_list(config.get("github_queries", []))
+    config["github_watch_repos"] = normalize_string_list(config.get("github_watch_repos", []))
+    config["github_created_days"] = int(config.get("github_created_days", 14))
+    config["github_min_stars"] = int(config.get("github_min_stars", 80))
+    config["github_max_candidates"] = int(config.get("github_max_candidates", 6))
+    config["github_readme_max_chars"] = int(config.get("github_readme_max_chars", 220))
+    focus_map: dict[str, list[str]] = {}
+    for label, aliases in dict(config.get("github_focus_map", {})).items():
+        label_text = str(label).strip()
+        merged_aliases = [label_text, *normalize_string_list(aliases)]
+        if label_text:
+            focus_map[label_text] = list(dict.fromkeys(alias for alias in merged_aliases if alias))
+    config["github_focus_map"] = focus_map
     config["retention_days"] = int(config.get("retention_days", 14))
     delivery = dict(config.get("delivery", {}))
     delivery["email_subject_prefix"] = delivery.get("email_subject_prefix", config["topic_name"])

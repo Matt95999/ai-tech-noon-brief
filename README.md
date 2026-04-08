@@ -85,7 +85,7 @@ python3 scripts/send_email_report.py reports/2026-03-27.md --dry-run
 
 ## GitHub Actions
 
-工作流分两条：
+工作流分三条：
 
 - `.github/workflows/ai-tech-noon-brief.yml`
   - 每天 `12:00` 北京时间执行 dry-run 校验，对应 `04:00 UTC`
@@ -95,6 +95,10 @@ python3 scripts/send_email_report.py reports/2026-03-27.md --dry-run
   - 每天 `20:00` 北京时间正式运行，对应 `12:00 UTC`
   - 固定运行 profile：`ai-evening-brief`
   - 顺序：单测 -> 生成报告 -> 结构校验 -> 发送邮件 -> 上传 artifacts
+- `.github/workflows/model-dev-github-daily.yml`
+  - 每天 `09:10` 北京时间正式运行，对应 `01:10 UTC`
+  - 固定运行 profile：`model-dev-github-daily`
+  - 数据来自 GitHub 官方 REST API，覆盖 Codex、Claude Code、Gemini 与国内外主流模型开发生态
 
 ### 需要配置的 Secrets
 
@@ -117,6 +121,7 @@ python3 scripts/send_email_report.py reports/2026-03-27.md --dry-run
 - 如果 `DEEPSEEK_API_URL` 指向明显错误的路径，系统会直接失败，不再静默降级。
 - `DEEPSEEK_MODEL` 默认可用 `deepseek-chat`
 - `OPENAI_API_KEY` 只对 `openai_search` 类 profile 生效
+- `GITHUB_TOKEN` 只对 `github_search` 类 profile 生效；GitHub Actions 默认使用 `github.token`
 - 如果 `OPENAI_API_KEY` 缺失，`openai_search` profile 会回退到 RSS，不会得到 OpenAI 深度检索结果
 - `SMTP_PORT` 必须是有效端口；`SMTP_USE_SSL=true` 不应搭配 `587`，`SMTP_USE_TLS=true` 不应搭配 `465`
 - `DEEPSEEK_API_KEY`、`DEEPSEEK_API_URL`、`SMTP` 配置现在都会在 live workflow 生成前先做预检；配置错误会直接失败，不再因为低信号日被掩盖
