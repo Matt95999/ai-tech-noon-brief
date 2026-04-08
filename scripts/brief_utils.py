@@ -103,6 +103,7 @@ def merge_config(
     config["focus_companies"] = normalize_string_list(config.get("focus_companies", []))
     config["include_keywords"] = normalize_string_list(config.get("include_keywords", []))
     config["exclude_keywords"] = normalize_string_list(config.get("exclude_keywords", []))
+    config["rss_queries"] = normalize_string_list(config.get("rss_queries", []))
     config["retention_days"] = int(config.get("retention_days", 14))
     delivery = dict(config.get("delivery", {}))
     delivery["email_subject_prefix"] = delivery.get("email_subject_prefix", config["topic_name"])
@@ -112,6 +113,7 @@ def merge_config(
     source_policy = dict(config.get("source_policy", {}))
     source_policy["primary_publishers"] = normalize_string_list(source_policy.get("primary_publishers", []))
     source_policy["secondary_publishers"] = normalize_string_list(source_policy.get("secondary_publishers", []))
+    source_policy["exclude_publishers"] = normalize_string_list(source_policy.get("exclude_publishers", []))
     source_policy["require_primary_source"] = bool(source_policy.get("require_primary_source", False))
     config["source_policy"] = source_policy
 
@@ -124,4 +126,13 @@ def merge_config(
     impact_policy["min_high_confidence_items"] = int(impact_policy.get("min_high_confidence_items", 1))
     impact_policy["allow_low_signal_fallback"] = bool(impact_policy.get("allow_low_signal_fallback", True))
     config["impact_policy"] = impact_policy
+
+    company_aliases: dict[str, list[str]] = {}
+    for company, aliases in dict(config.get("company_aliases", {})).items():
+        canonical = str(company).strip()
+        if not canonical:
+            continue
+        merged_aliases = [canonical, *normalize_string_list(aliases)]
+        company_aliases[canonical] = list(dict.fromkeys(merged_aliases))
+    config["company_aliases"] = company_aliases
     return config
