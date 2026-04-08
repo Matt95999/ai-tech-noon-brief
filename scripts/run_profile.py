@@ -15,7 +15,7 @@ if str(PROJECT_ROOT) not in sys.path:
 if str(PROJECT_ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 
-from collectors import collect_deepseek_report, collect_openai_report, collect_rss_report
+from collectors import collect_deepseek_report, collect_github_report, collect_openai_report, collect_rss_report
 from collectors.deepseek_chat import check_deepseek_config
 from collectors.openai_search import check_openai_config
 from delivery import send_profile_email
@@ -352,6 +352,8 @@ def main() -> int:
                     "items_found": 0,
                     "degraded": True,
                 }
+        elif "github_search" in collectors:
+            result = collect_github_report(now_local, config)
         else:
             result = collect_rss_report(now_local, config)
 
