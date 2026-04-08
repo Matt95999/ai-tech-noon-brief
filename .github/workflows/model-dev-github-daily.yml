@@ -69,8 +69,8 @@ jobs:
           fi
           REPORT_PATH="reports/${REPORT_DATE}.md"
           test -s "$REPORT_PATH"
-          grep -q "Executive Summary" "$REPORT_PATH"
-          grep -q "Source Log" "$REPORT_PATH"
+          grep -q "## 结论" "$REPORT_PATH"
+          grep -q "## 来源" "$REPORT_PATH"
           printf 'REPORT_PATH=%s\n' "$REPORT_PATH" >> "$GITHUB_ENV"
 
       - name: Validate SMTP config
