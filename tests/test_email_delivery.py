@@ -11,7 +11,13 @@ if str(PROJECT_ROOT) not in sys.path:
 if str(PROJECT_ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 
-from scripts.send_email_report import build_message, render_report_html, send_message, validate_settings
+from scripts.send_email_report import (
+    build_message,
+    render_report_html,
+    send_message,
+    validate_report,
+    validate_settings,
+)
 from brief_utils import BriefGenerationError
 
 
@@ -71,6 +77,17 @@ class EmailDeliveryTests(unittest.TestCase):
 
         self.assertEqual(message["Subject"], "AI 晚报（2026-04-06）")
         self.assertGreaterEqual(len(message.get_payload()), 2)
+
+    def test_render_report_html_supports_chinese_section_titles(self) -> None:
+        body = (
+            "# 多模型开发日报\n\n日期: 2026-04-08\n\n## 结论\n- 第一条\n\n## 来源\n"
+            "1. Source\n   https://example.com\n"
+        )
+        validate_report(body)
+        html = render_report_html("多模型开发日报（2026-04-08）", body)
+        self.assertIn(">结论<", html)
+        self.assertIn(">来源<", html)
+        self.assertIn("https://example.com", html)
 
     def test_send_message_uses_retry_capable_settings(self) -> None:
         import smtplib
