@@ -15,6 +15,7 @@ if str(PROJECT_ROOT / "scripts") not in sys.path:
 from collectors.github_search import (
     build_github_report,
     extract_focus_labels,
+    extract_readme_brief,
     extract_readme_excerpt,
     select_top_repositories,
 )
@@ -37,6 +38,21 @@ Run the tool with a terminal-first workflow and ship from GitHub Actions.
         self.assertIn("practical Claude Code workflows", excerpt)
         self.assertNotIn("shields.io", excerpt)
         self.assertNotIn("Project Title", excerpt)
+
+    def test_extract_readme_brief_keeps_play_points(self) -> None:
+        readme = """
+# Project Title
+
+This repository adds practical Claude Code workflows for daily coding tasks.
+
+## Features
+
+- Review pull requests with a reusable GitHub Actions workflow.
+- Run a terminal-first coding loop before shipping from CI.
+"""
+        brief = extract_readme_brief(readme, excerpt_max_chars=120, max_points=3)
+        self.assertIn("practical Claude Code workflows", brief["excerpt"])
+        self.assertTrue(any("GitHub Actions workflow" in point for point in brief["key_points"]))
 
     def test_extract_focus_labels_uses_profile_focus_map(self) -> None:
         config = {
@@ -122,6 +138,10 @@ Run the tool with a terminal-first workflow and ship from GitHub Actions.
                 "full_name": "openai/codex",
                 "description": "Codex CLI agent",
                 "readme_excerpt": "Codex CLI for coding tasks in the terminal.",
+                "readme_key_points": [
+                    "Run the coding loop from the terminal before shipping from CI.",
+                    "Use repository prompts and rules to standardize coding tasks.",
+                ],
                 "focus_labels": ["Codex"],
                 "watchlisted": True,
                 "bucket": "watch",
@@ -140,6 +160,12 @@ Run the tool with a terminal-first workflow and ship from GitHub Actions.
         self.assertIn("## 动作", report)
         self.assertIn("## 来源", report)
         self.assertNotIn("## Executive Summary", report)
+        self.assertIn("- 今日主题：", report)
+        self.assertIn("- 整体概况：", report)
+        self.assertIn("- 主题：", report)
+        self.assertIn("- 它在做什么：", report)
+        self.assertIn("- 可玩点 1：", report)
+        self.assertIn("- 适合参考：", report)
 
 
 if __name__ == "__main__":
