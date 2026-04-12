@@ -610,9 +610,18 @@ def build_report_overview(repos: list[dict]) -> tuple[str, str]:
     return theme, overview
 
 
+def resolve_scope_name(config: dict) -> str:
+    return str(config.get("github_scope_name") or "目标范围").strip()
+
+
+def resolve_watch_summary(config: dict) -> str:
+    return str(config.get("github_watch_summary") or "官方与重点观察仓库").strip()
+
+
 def build_github_research_notes(now_local: datetime, config: dict, repos: list[dict]) -> str:
     window_start = now_local - timedelta(hours=int(config["lookback_hours"]))
     timezone_value = now_local.tzinfo or timezone.utc
+    scope_name = resolve_scope_name(config)
     if not repos:
         return "\n".join(
             [
@@ -622,7 +631,7 @@ def build_github_research_notes(now_local: datetime, config: dict, repos: list[d
                 "",
                 "## Query Strategy",
                 "- GitHub Search API：新建高星仓库 + 近 24 小时活跃仓库",
-                "- 覆盖 Codex、Claude Code、Gemini、Qwen、DeepSeek、Kimi 等模型开发生态",
+                f"- 覆盖 {scope_name}",
                 "",
                 "## Key Findings",
                 f"- {now_local.strftime('%Y-%m-%d')}：无重大新增，未发现同时满足主题相关性、近期活跃度和 Star 门槛的高信号项目。",
@@ -658,7 +667,7 @@ def build_github_research_notes(now_local: datetime, config: dict, repos: list[d
             "",
             "## Query Strategy",
             "- GitHub Search API：过去 14 天高 Star 新项目 + 过去 24 小时活跃仓库",
-            "- Watchlist：OpenAI / Anthropic / Gemini / 国内模型开发工具仓库",
+            f"- Watchlist：{resolve_watch_summary(config)}",
             "",
             "## Key Findings",
             *findings,
@@ -688,6 +697,7 @@ def build_try_line(repo: dict) -> str:
 
 def build_github_report(now_local: datetime, config: dict, repos: list[dict]) -> str:
     timezone_value = now_local.tzinfo or timezone.utc
+    scope_name = resolve_scope_name(config)
     lines = [
         f"# {config['topic_name']}",
         "",
@@ -701,7 +711,7 @@ def build_github_report(now_local: datetime, config: dict, repos: list[dict]) ->
     if not repos:
         lines.extend(
             [
-                "- 无重大新增。过去 24 小时没有筛出足够高信号的多模型开发 GitHub 项目。",
+                f"- 无重大新增。过去 24 小时没有筛出足够高信号的 {scope_name} GitHub 项目。",
                 "- 链路仍正常，说明今天更像低信号日，而不是抓取失败。",
                 "- 继续观察官方仓库 release、CLI、Agent 工作流和社区模板。",
                 "",
@@ -723,7 +733,7 @@ def build_github_report(now_local: datetime, config: dict, repos: list[dict]) ->
         return "\n".join(lines)
 
     top_repo = repos[0]
-    top_focuses = ", ".join(sorted({label for repo in repos for label in repo.get("focus_labels", [])})) or "多模型开发"
+    top_focuses = ", ".join(sorted({label for repo in repos for label in repo.get("focus_labels", [])})) or scope_name
     theme_line, overview_line = build_report_overview(repos)
     lines.extend(
         [

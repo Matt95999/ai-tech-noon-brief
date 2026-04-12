@@ -31,12 +31,12 @@ class ProfileLoadingTests(unittest.TestCase):
         self.assertIn("Reuters", config["source_policy"]["secondary_publishers"])
         self.assertGreaterEqual(config["impact_policy"]["min_high_confidence_items"], 1)
 
-    def test_load_model_dev_github_daily_profile(self) -> None:
-        profile_path, config = load_profile(PROJECT_ROOT, "model-dev-github-daily")
-        self.assertEqual(profile_path.name, "model-dev-github-daily.json")
-        self.assertEqual(config["topic_name"], "多模型开发 GitHub 日报")
+    def test_load_agent_codex_claude_github_daily_profile(self) -> None:
+        profile_path, config = load_profile(PROJECT_ROOT, "agent-codex-claude-github-daily")
+        self.assertEqual(profile_path.name, "agent-codex-claude-github-daily.json")
+        self.assertEqual(config["topic_name"], "Agent / Codex / Claude Code GitHub 日报")
         self.assertIn("github_search", config["collectors"])
-        self.assertIn("Gemini", config["github_focus_map"])
+        self.assertIn("通用 Agent", config["github_focus_map"])
 
     def test_load_profile_from_override(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

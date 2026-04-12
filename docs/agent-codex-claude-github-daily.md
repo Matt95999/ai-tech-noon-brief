@@ -1,8 +1,8 @@
-# 多模型开发 GitHub 日报接入说明
+# Agent / Codex / Claude Code GitHub 日报接入说明
 
 ## 主题
 
-- 主题：每天获取 GitHub 上与 Codex、Claude Code、Gemini 及国内外主流大模型开发相关的高 Star 新玩法和重点仓库动态
+- 主题：每天获取 GitHub 上与通用 Agent、Codex 生态、Claude Code 生态相关的高 Star 新玩法和重点仓库动态，并保留指定观察项目如 Hermes Agent、OpenScreen
 - 目标：把“每天自己翻 GitHub”变成一条自动化日报链路
 - 受众：个人开发者、独立产品开发、AI 工程效率工作流
 - 验收：每天按时生成一份 Markdown 日报；如果 SMTP 已配置则同步发邮件；低信号日也不断档
@@ -24,21 +24,21 @@
 ## 新增文件
 
 - `collectors/github_search.py`
-- `profiles/model-dev-github-daily.json`
-- `templates/model_dev_github_daily_template.md`
-- `.github/workflows/model-dev-github-daily.yml`
+- `profiles/agent-codex-claude-github-daily.json`
+- `templates/agent_codex_claude_github_daily_template.md`
+- `.github/workflows/agent-codex-claude-github-daily.yml`
 
 ## 运行策略
 
 - 时间窗：过去 `24` 小时的活跃仓库 + 过去 `14` 天的新建高 Star 仓库
 - Star 门槛：默认 `80`
 - 覆盖生态：
+  - `通用 Agent`
   - `Codex`
   - `Claude Code`
-  - `Gemini`
-  - `Qwen`
-  - `DeepSeek`
-  - `Kimi`
+  - `Hermes Agent`
+  - `OpenHands`
+  - `OpenScreen`
 - 输出重点：
   - 今天最值得先看哪几个仓库
   - 每个仓库具体在做什么，属于哪类玩法主题
@@ -57,14 +57,14 @@
 
 ```bash
 python3 -m unittest discover -s tests
-python3 scripts/run_profile.py --profile model-dev-github-daily --dry-run
-python3 scripts/run_profile.py --profile model-dev-github-daily --skip-delivery
+python3 scripts/run_profile.py --profile agent-codex-claude-github-daily --dry-run
+python3 scripts/run_profile.py --profile agent-codex-claude-github-daily --skip-delivery
 ```
 
 ## 上线检查
 
-- 确认 workflow `model-dev-github-daily.yml` 已启用
+- 确认 workflow `agent-codex-claude-github-daily.yml` 已启用
 - 手动触发一次 workflow
 - 确认 `reports/` 生成当日 Markdown
 - 确认 `artifacts/` 写入 research notes 和 API 元数据
-- 若配置了 SMTP，确认邮箱收到 `多模型开发 GitHub 日报（YYYY-MM-DD）`
+- 若配置了 SMTP，确认邮箱收到 `Agent / Codex / Claude Code GitHub 日报（YYYY-MM-DD）`

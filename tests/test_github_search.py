@@ -57,18 +57,20 @@ This repository adds practical Claude Code workflows for daily coding tasks.
     def test_extract_focus_labels_uses_profile_focus_map(self) -> None:
         config = {
             "github_focus_map": {
-                "Gemini": ["gemini", "gemini cli"],
-                "Qwen": ["qwen", "qwen coder"],
+                "通用 Agent": ["hermes agent", "agent harness"],
+                "Claude Code": ["claude code"],
             }
         }
         repo = {
-            "full_name": "google-gemini/gemini-cli",
-            "description": "Gemini CLI for developer workflows",
-            "topics": ["cli", "ai"],
-            "matched_query": "\"Gemini CLI\" in:name,description,readme",
+            "full_name": "NousResearch/hermes-agent",
+            "description": "The agent that grows with you",
+            "topics": ["ai-agent", "claude-code", "codex"],
+            "matched_query": "\"Hermes Agent\" in:name,description,readme",
             "readme_excerpt": "",
         }
-        self.assertEqual(extract_focus_labels(repo, config), ["Gemini"])
+        labels = extract_focus_labels(repo, config)
+        self.assertIn("通用 Agent", labels)
+        self.assertIn("Claude Code", labels)
 
     def test_select_top_repositories_diversifies_focus_labels(self) -> None:
         now = datetime(2026, 4, 8, 9, 0, tzinfo=ZoneInfo("Asia/Shanghai"))
@@ -78,12 +80,25 @@ This repository adds practical Claude Code workflows for daily coding tasks.
             "github_created_days": 14,
             "github_readme_max_chars": 220,
             "github_focus_map": {
+                "通用 Agent": ["hermes agent", "openhands", "agent harness"],
                 "Codex": ["codex"],
                 "Claude Code": ["claude code"],
-                "Gemini": ["gemini"],
             },
         }
         repos = [
+            {
+                "full_name": "NousResearch/hermes-agent",
+                "description": "General agent harness",
+                "topics": ["agent", "ai-agent"],
+                "matched_query": "hermes agent",
+                "readme_excerpt": "General agent harness",
+                "stars": 500,
+                "watchlisted": False,
+                "bucket": "fresh",
+                "created_at": datetime(2026, 4, 2, 12, 0, tzinfo=ZoneInfo("UTC")),
+                "pushed_at": datetime(2026, 4, 8, 3, 0, tzinfo=ZoneInfo("UTC")),
+                "latest_release": None,
+            },
             {
                 "full_name": "openai/codex",
                 "description": "Codex CLI agent",
@@ -110,29 +125,16 @@ This repository adds practical Claude Code workflows for daily coding tasks.
                 "pushed_at": datetime(2026, 4, 8, 1, 0, tzinfo=ZoneInfo("UTC")),
                 "latest_release": None,
             },
-            {
-                "full_name": "google-gemini/gemini-cli",
-                "description": "Gemini CLI",
-                "topics": ["cli"],
-                "matched_query": "gemini",
-                "readme_excerpt": "Gemini CLI",
-                "stars": 200,
-                "watchlisted": False,
-                "bucket": "fresh",
-                "created_at": datetime(2026, 4, 4, 12, 0, tzinfo=ZoneInfo("UTC")),
-                "pushed_at": datetime(2026, 4, 8, 2, 0, tzinfo=ZoneInfo("UTC")),
-                "latest_release": None,
-            },
         ]
         selected = select_top_repositories(repos, now, config, enrich=False)
         labels = {label for repo in selected for label in repo.get("focus_labels", [])}
+        self.assertIn("通用 Agent", labels)
         self.assertIn("Codex", labels)
         self.assertIn("Claude Code", labels)
-        self.assertIn("Gemini", labels)
 
     def test_build_github_report_uses_short_section_titles(self) -> None:
         now = datetime(2026, 4, 8, 9, 0, tzinfo=ZoneInfo("Asia/Shanghai"))
-        config = {"topic_name": "多模型开发 GitHub 日报"}
+        config = {"topic_name": "Agent / Codex / Claude Code GitHub 日报", "github_scope_name": "通用 Agent、Codex 生态、Claude Code 生态"}
         repos = [
             {
                 "full_name": "openai/codex",

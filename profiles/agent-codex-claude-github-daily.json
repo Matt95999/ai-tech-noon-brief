@@ -1,0 +1,86 @@
+{
+  "slug": "agent-codex-claude-github-daily",
+  "topic_name": "Agent / Codex / Claude Code GitHub 日报",
+  "github_scope_name": "通用 Agent、Codex 生态、Claude Code 生态，以及指定演示包装项目",
+  "github_watch_summary": "OpenAI / Anthropic / Hermes Agent / OpenHands / Claude Code 社区高信号仓库 + 指定 OpenScreen 项目",
+  "timezone": "Asia/Shanghai",
+  "lookback_hours": 24,
+  "collectors": [
+    "github_search"
+  ],
+  "template_path": "templates/agent_codex_claude_github_daily_template.md",
+  "focus_companies": [
+    "OpenAI",
+    "Anthropic",
+    "Nous Research",
+    "OpenHands",
+    "Independent Builders"
+  ],
+  "include_keywords": [
+    "Agent",
+    "Hermes Agent",
+    "OpenHands",
+    "Codex",
+    "Claude Code",
+    "OpenScreen"
+  ],
+  "exclude_keywords": [
+    "sports",
+    "celebrity",
+    "gaming rumor"
+  ],
+  "github_queries": [
+    "\"Hermes Agent\" in:name,description,readme",
+    "\"OpenHands\" in:name,description,readme",
+    "\"agent harness\" in:name,description,readme",
+    "\"Claude Code\" in:name,description,readme",
+    "\"Codex\" in:name,description,readme",
+    "\"OpenScreen\" in:name,description,readme"
+  ],
+  "github_watch_repos": [
+    "openai/codex",
+    "anthropics/claude-code-action",
+    "NousResearch/hermes-agent",
+    "OpenHands/OpenHands",
+    "affaan-m/everything-claude-code",
+    "first-fluke/oh-my-agent",
+    "0xfurai/claude-code-subagents",
+    "siddharthvaddem/openscreen"
+  ],
+  "github_focus_map": {
+    "通用 Agent": [
+      "hermes agent",
+      "openhands",
+      "agent harness",
+      "software agent",
+      "multi-agent",
+      "multi agent",
+      "oh my agent"
+    ],
+    "Codex": [
+      "codex",
+      "openai codex"
+    ],
+    "Claude Code": [
+      "claude code",
+      "claude-code"
+    ],
+    "演示包装": [
+      "openscreen",
+      "screen recorder",
+      "screen capture"
+    ]
+  },
+  "github_created_days": 14,
+  "github_min_stars": 80,
+  "github_max_candidates": 6,
+  "github_readme_max_chars": 220,
+  "delivery": {
+    "channels": [
+      "email"
+    ],
+    "email_subject_prefix": "Agent / Codex / Claude Code GitHub 日报",
+    "attach_markdown": true
+  },
+  "retention_days": 21
+}

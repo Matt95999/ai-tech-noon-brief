@@ -1,4 +1,4 @@
-name: Model Dev GitHub Daily
+name: Agent Codex Claude GitHub Daily
 
 on:
   schedule:
@@ -10,7 +10,7 @@ on:
         required: false
 
 concurrency:
-  group: model-dev-github-daily
+  group: agent-codex-claude-github-daily
   cancel-in-progress: false
 
 jobs:
@@ -20,7 +20,7 @@ jobs:
     permissions:
       contents: read
     env:
-      BRIEF_PROFILE: model-dev-github-daily
+      BRIEF_PROFILE: agent-codex-claude-github-daily
       REPORT_TIMEZONE: Asia/Shanghai
       LOOKBACK_HOURS: "24"
       GITHUB_TOKEN: ${{ github.token }}
@@ -87,7 +87,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: model-dev-github-daily-${{ github.run_id }}
+          name: agent-codex-claude-github-daily-${{ github.run_id }}
           path: |
             reports/
             artifacts/
