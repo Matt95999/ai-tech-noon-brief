@@ -83,6 +83,13 @@ python3 scripts/run_profile.py --profile ai-frontier-daily --check-openai
 python3 scripts/send_email_report.py reports/2026-03-27.md --dry-run
 ```
 
+### 4. 单独测试飞书模块
+
+```bash
+python3 scripts/send_feishu_report.py --check-feishu
+python3 scripts/send_feishu_report.py reports/2026-03-27.md --dry-run
+```
+
 ## GitHub Actions
 
 工作流分三条：
@@ -99,12 +106,18 @@ python3 scripts/send_email_report.py reports/2026-03-27.md --dry-run
   - 每天 `09:10` 北京时间正式运行，对应 `01:10 UTC`
   - 固定运行 profile：`model-dev-github-daily`
   - 数据来自 GitHub 官方 REST API，覆盖 Codex、Claude Code、Gemini 与国内外主流模型开发生态
+- `.github/workflows/advanced-packaging-daily.yml`
+  - 每天 `08:30` 北京时间正式运行，对应 `00:30 UTC`
+  - 固定运行 profile：`advanced-packaging-daily`
+  - 投递到飞书自定义机器人 Webhook；完整 Markdown 和 source audit 仍上传到 artifacts
 
 ### 需要配置的 Secrets
 
 - `DEEPSEEK_API_URL`
 - `DEEPSEEK_API_KEY`
 - `DEEPSEEK_MODEL`
+- `FEISHU_WEBHOOK_URL`
+- `FEISHU_SIGN_SECRET`（可选，仅飞书机器人启用签名校验时需要）
 - `SMTP_HOST`
 - `SMTP_PORT`
 - `SMTP_USERNAME`
@@ -122,9 +135,11 @@ python3 scripts/send_email_report.py reports/2026-03-27.md --dry-run
 - `DEEPSEEK_MODEL` 默认可用 `deepseek-chat`
 - `OPENAI_API_KEY` 只对 `openai_search` 类 profile 生效
 - `GITHUB_TOKEN` 只对 `github_search` 类 profile 生效；GitHub Actions 默认使用 `github.token`
+- `FEISHU_WEBHOOK_URL` 只通过 GitHub Secret 注入，不应提交到仓库、profile 或日志
+- `FEISHU_SIGN_SECRET` 可选；配置后飞书 payload 会自动加签
 - 如果 `OPENAI_API_KEY` 缺失，`openai_search` profile 会回退到 RSS，不会得到 OpenAI 深度检索结果
 - `SMTP_PORT` 必须是有效端口；`SMTP_USE_SSL=true` 不应搭配 `587`，`SMTP_USE_TLS=true` 不应搭配 `465`
-- `DEEPSEEK_API_KEY`、`DEEPSEEK_API_URL`、`SMTP` 配置现在都会在 live workflow 生成前先做预检；配置错误会直接失败，不再因为低信号日被掩盖
+- `DEEPSEEK_API_KEY`、`DEEPSEEK_API_URL`、`SMTP` 或 `FEISHU` 配置会在对应 live workflow 生成前先做预检；配置错误会直接失败，不再因为低信号日被掩盖
 
 ### 可选 Variables
 

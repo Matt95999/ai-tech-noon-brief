@@ -8,6 +8,16 @@
     "rss"
   ],
   "rss_queries": [
+    "site:tsmc.com CoWoS OR SoIC OR advanced packaging",
+    "site:intel.com foundry advanced packaging OR Foveros OR EMIB",
+    "site:semiconductor.samsung.com advanced packaging OR I-Cube OR X-Cube",
+    "site:aseglobal.com advanced packaging OR FOCoS OR fan-out",
+    "site:amkor.com advanced packaging OR 2.5D OR 3D",
+    "site:jcetglobal.com advanced packaging OR XDFOI OR chiplet",
+    "site:tongfu.com.cn advanced packaging OR chiplet OR 2.5D",
+    "site:ht-tech.com advanced packaging OR chiplet OR HBM",
+    "site:scc.com.cn FC-BGA OR ABF OR IC substrate",
+    "site:semi.org advanced packaging OR HBM OR chiplet",
     "advanced packaging semiconductor",
     "CoWoS",
     "HBM packaging",
@@ -171,7 +181,10 @@
       "Broadcom",
       "Marvell",
       "UCIe Consortium",
-      "SEMI"
+      "SEMI",
+      "SEMICON",
+      "IEDM",
+      "ECTC"
     ],
     "secondary_publishers": [
       "Reuters",
@@ -234,9 +247,10 @@
   },
   "delivery": {
     "channels": [
-      "email"
+      "feishu"
     ],
     "email_subject_prefix": "集成电路先进封装每日简报",
+    "feishu_title_prefix": "集成电路先进封装每日简报",
     "attach_markdown": true
   },
   "retention_days": 14

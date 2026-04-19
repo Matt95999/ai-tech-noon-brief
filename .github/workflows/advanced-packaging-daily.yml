@@ -26,14 +26,8 @@ jobs:
       DEEPSEEK_API_URL: ${{ secrets.DEEPSEEK_API_URL }}
       DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
       DEEPSEEK_MODEL: ${{ secrets.DEEPSEEK_MODEL || vars.DEEPSEEK_MODEL || 'deepseek-chat' }}
-      SMTP_HOST: ${{ secrets.SMTP_HOST }}
-      SMTP_PORT: ${{ secrets.SMTP_PORT }}
-      SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
-      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-      SMTP_USE_SSL: ${{ secrets.SMTP_USE_SSL || vars.SMTP_USE_SSL || 'false' }}
-      SMTP_USE_TLS: ${{ secrets.SMTP_USE_TLS || vars.SMTP_USE_TLS || 'true' }}
-      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
-      EMAIL_TO: ${{ secrets.EMAIL_TO }}
+      FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
+      FEISHU_SIGN_SECRET: ${{ secrets.FEISHU_SIGN_SECRET }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -57,9 +51,9 @@ jobs:
         run: |
           python3 scripts/run_profile.py --profile advanced-packaging-daily --check-deepseek
 
-      - name: Validate SMTP config
+      - name: Validate Feishu config
         run: |
-          python3 scripts/send_email_report.py --check-smtp
+          python3 scripts/send_feishu_report.py --check-feishu
 
       - name: Generate daily brief
         run: |
@@ -85,9 +79,9 @@ jobs:
           grep -q "Source Log" "$REPORT_PATH"
           printf 'REPORT_PATH=%s\n' "$REPORT_PATH" >> "$GITHUB_ENV"
 
-      - name: Send email
+      - name: Send Feishu card
         run: |
-          python3 scripts/send_email_report.py "$REPORT_PATH"
+          python3 scripts/send_feishu_report.py "$REPORT_PATH" --subject-prefix "集成电路先进封装每日简报"
 
       - name: Upload report artifacts
         if: always()

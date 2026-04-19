@@ -72,7 +72,11 @@ class DeepSeekCollectorTests(unittest.TestCase):
         os.environ["DEEPSEEK_API_URL"] = "https://api.deepseek.com"
         os.environ["DEEPSEEK_API_KEY"] = "test-key"
         try:
-            with mock.patch.object(deepseek_chat, "collect_rss_items", return_value=self.items[:1]):
+            with mock.patch.object(
+                deepseek_chat,
+                "collect_rss_items_with_audit",
+                return_value=(self.items[:1], {"fetched_items": 1, "excluded_counts": {}}),
+            ):
                 result = deepseek_chat.collect_deepseek_report(self.now, self.config, self.template, "deepseek-chat")
             self.assertEqual(result["mode"], "low-signal-filtered-rss")
             self.assertTrue(result["degraded"])
@@ -88,7 +92,11 @@ class DeepSeekCollectorTests(unittest.TestCase):
         os.environ.pop("DEEPSEEK_API_URL", None)
         os.environ.pop("DEEPSEEK_API_KEY", None)
         try:
-            with mock.patch.object(deepseek_chat, "collect_rss_items", return_value=self.items[:1]):
+            with mock.patch.object(
+                deepseek_chat,
+                "collect_rss_items_with_audit",
+                return_value=(self.items[:1], {"fetched_items": 1, "excluded_counts": {}}),
+            ):
                 with self.assertRaises(ValueError):
                     deepseek_chat.collect_deepseek_report(self.now, self.config, self.template, "deepseek-chat")
         finally:
@@ -143,11 +151,37 @@ class DeepSeekCollectorTests(unittest.TestCase):
             "resolve_deepseek_config",
             return_value={"api_url": "https://api.deepseek.com/chat/completions", "model": "deepseek-chat"},
         ):
-            with mock.patch.object(deepseek_chat, "collect_rss_items", return_value=self.items[:1]):
+            with mock.patch.object(
+                deepseek_chat,
+                "collect_rss_items_with_audit",
+                return_value=(self.items[:1], {"fetched_items": 1, "excluded_counts": {}}),
+            ):
                 result = deepseek_chat.collect_deepseek_report(self.now, config, self.template, "deepseek-chat")
         self.assertIn("## Latest Developments", result["report_markdown"])
         self.assertIn("## Financial / Macro Pulse", result["report_markdown"])
         self.assertIn("## Source Log", result["report_markdown"])
+        self.assertNotIn("AI 动态", result["report_markdown"])
+
+    def test_low_signal_report_uses_advanced_packaging_sections(self) -> None:
+        config = dict(self.config)
+        config["slug"] = "advanced-packaging-daily"
+        config["topic_name"] = "集成电路先进封装每日简报"
+        config["impact_policy"] = {**config["impact_policy"], "min_high_confidence_items": 3}
+        with mock.patch.object(
+            deepseek_chat,
+            "resolve_deepseek_config",
+            return_value={"api_url": "https://api.deepseek.com/chat/completions", "model": "deepseek-chat"},
+        ):
+            with mock.patch.object(
+                deepseek_chat,
+                "collect_rss_items_with_audit",
+                return_value=(self.items[:1], {"fetched_items": 1, "excluded_counts": {}}),
+            ):
+                result = deepseek_chat.collect_deepseek_report(self.now, config, self.template, "deepseek-chat")
+        self.assertIn("## Latest Developments", result["report_markdown"])
+        self.assertIn("## Global Leader Watch", result["report_markdown"])
+        self.assertIn("## China Watch", result["report_markdown"])
+        self.assertIn("## Supply Chain Radar", result["report_markdown"])
         self.assertNotIn("AI 动态", result["report_markdown"])
 
     def test_collect_deepseek_report_raises_on_empty_model_output(self) -> None:
@@ -155,7 +189,11 @@ class DeepSeekCollectorTests(unittest.TestCase):
         os.environ["DEEPSEEK_API_URL"] = "https://example.com/chat/completions"
         os.environ["DEEPSEEK_API_KEY"] = "test-key"
         try:
-            with mock.patch.object(deepseek_chat, "collect_rss_items", return_value=self.items):
+            with mock.patch.object(
+                deepseek_chat,
+                "collect_rss_items_with_audit",
+                return_value=(self.items, {"fetched_items": len(self.items), "excluded_counts": {}}),
+            ):
                 with mock.patch.object(deepseek_chat, "request_deepseek", return_value={"choices": []}):
                     with self.assertRaises(BriefGenerationError):
                         deepseek_chat.collect_deepseek_report(self.now, self.config, self.template, "deepseek-chat")

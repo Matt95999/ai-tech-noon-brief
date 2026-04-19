@@ -12,7 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
 if str(PROJECT_ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 
-from collectors.rss import build_rss_queries, collect_impact_matches, filter_rss_items
+from collectors.rss import build_source_audit, build_rss_queries, collect_impact_matches, filter_rss_items
 
 
 class RssFilteringTests(unittest.TestCase):
@@ -153,6 +153,40 @@ class RssFilteringTests(unittest.TestCase):
         filtered = filter_rss_items(items, config)
 
         self.assertEqual(filtered, [])
+
+    def test_source_audit_records_tier_distribution_and_watchlist_items(self) -> None:
+        now = datetime(2026, 4, 8, 20, 0, tzinfo=ZoneInfo("Asia/Shanghai"))
+        raw_items = [
+            {
+                "title": "TSMC CoWoS capacity update",
+                "source": "TSMC",
+                "company": "TSMC",
+                "published_at": now,
+                "source_tier": "primary",
+                "impact_matches": ["CoWoS"],
+                "high_confidence": True,
+            },
+            {
+                "title": "Intel packaging report",
+                "source": "TechSpot",
+                "company": "Intel Foundry",
+                "published_at": now,
+                "source_tier": "unclassified",
+                "impact_matches": ["packaging"],
+                "high_confidence": False,
+            },
+        ]
+        audit = build_source_audit(
+            raw_items,
+            raw_items,
+            {"fetched_items": 3, "excluded_counts": {"exclude_publisher": 1}},
+        )
+
+        self.assertEqual(audit["fetched_items"], 3)
+        self.assertEqual(audit["selected_source_tiers"], {"primary": 1, "unclassified": 1})
+        self.assertEqual(audit["selected_high_confidence"], 1)
+        self.assertEqual(audit["selected_watchlist"], 1)
+        self.assertEqual(audit["excluded_counts"], {"exclude_publisher": 1})
 
 
 if __name__ == "__main__":
