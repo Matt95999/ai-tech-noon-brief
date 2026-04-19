@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 import ssl
+from collections import Counter
 from datetime import datetime, timedelta
 from html import unescape
 from urllib import error, request
@@ -43,7 +44,7 @@ def parse_pub_date(value: str, fallback_tz: ZoneInfo) -> datetime | None:
 def build_rss_queries(config: dict) -> list[str]:
     explicit_queries = list(dict.fromkeys(config.get("rss_queries", [])))
     if explicit_queries:
-        return explicit_queries[:12]
+        return explicit_queries[:24]
 
     companies = list(config["focus_companies"])[:4]
     keywords = list(config["include_keywords"])[:6]
@@ -87,6 +88,13 @@ def match_keyword(haystack: str, keyword: str) -> bool:
 def is_excluded_publisher(source: str, config: dict) -> bool:
     policy = config.get("source_policy", {})
     return matches_publisher(source, policy.get("exclude_publishers", []))
+
+
+def match_exclude_keyword(haystack: str, config: dict) -> str:
+    for term in config["exclude_keywords"]:
+        if term.lower() in haystack:
+            return term
+    return ""
 
 
 def classify_source_tier(source: str, config: dict) -> str:
@@ -143,12 +151,22 @@ def compute_confidence_score(item: dict) -> int:
 
 
 def collect_rss_items(now_local: datetime, config: dict) -> list[dict]:
+    items, _ = collect_rss_items_with_audit(now_local, config)
+    return items
+
+
+def collect_rss_items_with_audit(now_local: datetime, config: dict) -> tuple[list[dict], dict]:
     timezone = ZoneInfo(config["timezone"])
     cutoff = now_local - timedelta(hours=int(config["lookback_hours"]))
     seen_links: set[str] = set()
     items: list[dict] = []
-    exclude_terms = [term.lower() for term in config["exclude_keywords"]]
-    for query in build_rss_queries(config):
+    audit = {
+        "queries": build_rss_queries(config),
+        "fetched_items": 0,
+        "raw_candidates": 0,
+        "excluded": [],
+    }
+    for query in audit["queries"]:
         url = (
             "https://news.google.com/rss/search?q="
             f"{quote_plus(query)}+when:{config['lookback_hours']}h&hl=en-US&gl=US&ceid=US:en"
@@ -156,6 +174,7 @@ def collect_rss_items(now_local: datetime, config: dict) -> list[dict]:
         xml_text = fetch_text(url)
         root = ET.fromstring(xml_text)
         for node in root.findall(".//item"):
+            audit["fetched_items"] += 1
             title = (node.findtext("title") or "").strip()
             link = (node.findtext("link") or "").strip()
             pub_date_text = (node.findtext("pubDate") or "").strip()
@@ -165,9 +184,28 @@ def collect_rss_items(now_local: datetime, config: dict) -> list[dict]:
             haystack = f"{title} {source} {description}".lower()
             if not title or not link or not pub_date or pub_date < cutoff:
                 continue
-            if any(term in haystack for term in exclude_terms):
+            excluded_keyword = match_exclude_keyword(haystack, config)
+            if excluded_keyword:
+                audit["excluded"].append(
+                    {
+                        "reason": "exclude_keyword",
+                        "value": excluded_keyword,
+                        "source": source or "Google News RSS",
+                        "title": title,
+                        "query": query,
+                    }
+                )
                 continue
             if is_excluded_publisher(source or "Google News RSS", config):
+                audit["excluded"].append(
+                    {
+                        "reason": "exclude_publisher",
+                        "value": source or "Google News RSS",
+                        "source": source or "Google News RSS",
+                        "title": title,
+                        "query": query,
+                    }
+                )
                 continue
             if link in seen_links:
                 continue
@@ -191,7 +229,12 @@ def collect_rss_items(now_local: datetime, config: dict) -> list[dict]:
     impact_policy = config.get("impact_policy", {})
     max_candidates = int(impact_policy.get("max_candidates", 12))
     raw_candidate_limit = int(impact_policy.get("raw_candidate_limit", max(24, max_candidates * 6)))
-    return items[:raw_candidate_limit]
+    items = items[:raw_candidate_limit]
+    audit["raw_candidates"] = len(items)
+    audit["raw_source_tiers"] = dict(Counter(item.get("source_tier", "unclassified") for item in items))
+    audit["raw_sources"] = dict(Counter(item.get("source", "") for item in items))
+    audit["excluded_counts"] = dict(Counter(item["reason"] for item in audit["excluded"]))
+    return items, audit
 
 
 def filter_rss_items(items: list[dict], config: dict) -> list[dict]:
@@ -237,6 +280,34 @@ def filter_rss_items(items: list[dict], config: dict) -> list[dict]:
         reverse=True,
     )
     return filtered[:max_candidates]
+
+
+def build_source_audit(raw_items: list[dict], filtered_items: list[dict], collection_audit: dict | None = None) -> dict:
+    collection_audit = collection_audit or {}
+    return {
+        "queries": collection_audit.get("queries", []),
+        "fetched_items": collection_audit.get("fetched_items", len(raw_items)),
+        "raw_candidates": len(raw_items),
+        "selected_candidates": len(filtered_items),
+        "raw_source_tiers": dict(Counter(item.get("source_tier", "unclassified") for item in raw_items)),
+        "selected_source_tiers": dict(Counter(item.get("source_tier", "unclassified") for item in filtered_items)),
+        "selected_high_confidence": sum(1 for item in filtered_items if item.get("high_confidence")),
+        "selected_watchlist": sum(1 for item in filtered_items if not item.get("high_confidence")),
+        "excluded_counts": collection_audit.get("excluded_counts", {}),
+        "excluded_samples": collection_audit.get("excluded", [])[:20],
+        "selected_items": serialize_items(filtered_items),
+    }
+
+
+def format_source_audit_notes(source_audit: dict) -> list[str]:
+    tier_counts = source_audit.get("selected_source_tiers", {})
+    excluded_counts = source_audit.get("excluded_counts", {})
+    return [
+        f"- 候选抓取：RSS 原始条目 {source_audit.get('fetched_items', 0)} 条，初筛候选 {source_audit.get('raw_candidates', 0)} 条，入选 {source_audit.get('selected_candidates', 0)} 条。",
+        f"- 入选信源分布：primary {tier_counts.get('primary', 0)} 条，secondary {tier_counts.get('secondary', 0)} 条，unclassified {tier_counts.get('unclassified', 0)} 条。",
+        f"- 质量分层：高置信 {source_audit.get('selected_high_confidence', 0)} 条，观察候选 {source_audit.get('selected_watchlist', 0)} 条；unclassified 只能作为观察线索，不能单独支撑高影响结论。",
+        f"- 排除统计：低质 publisher {excluded_counts.get('exclude_publisher', 0)} 条，排除关键词 {excluded_counts.get('exclude_keyword', 0)} 条。",
+    ]
 
 
 def serialize_items(items: list[dict]) -> list[dict]:
@@ -410,13 +481,16 @@ def build_rss_report(now_local: datetime, config: dict, items: list[dict]) -> st
 
 
 def collect_rss_report(now_local: datetime, config: dict) -> dict:
-    items = filter_rss_items(collect_rss_items(now_local, config), config)
+    raw_items, collection_audit = collect_rss_items_with_audit(now_local, config)
+    items = filter_rss_items(raw_items, config)
+    source_audit = build_source_audit(raw_items, items, collection_audit)
     return {
         "mode": "live-rss",
         "research_notes": build_rss_research_notes(now_local, config, items),
         "report_markdown": build_rss_report(now_local, config, items),
-        "research_response": {"mode": "rss-live", "items": serialize_items(items)},
+        "research_response": {"mode": "rss-live", "items": serialize_items(items), "source_audit": source_audit},
         "final_response": {"mode": "rss-live"},
         "items_found": len(items),
         "degraded": not bool(items),
+        "source_audit": source_audit,
     }

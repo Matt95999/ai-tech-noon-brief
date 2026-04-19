@@ -5,14 +5,14 @@
 - 主题：集成电路先进封装行业最新进展
 - 目标：每天汇总过去 24 小时真实可靠、影响力大的先进封装新增，覆盖国内外龙头公司和上下游完整产业链
 - 受众：管理层、投资研究、业务拓展与产业链合作团队
-- 验收：邮件按时送达，正文只保留高影响事实，低信号日允许发“无重大新增”
+- 验收：飞书卡片按时送达，正文只保留高影响事实，低信号日允许发“无重大新增”
 
 ## 复用骨架
 
 - 发现层：`rss`
 - 成稿层：`deepseek_chat`
 - 调度：GitHub Actions
-- 投递：SMTP 邮件
+- 投递：飞书自定义机器人 Webhook 卡片
 - 代码入口：`python3 scripts/run_profile.py --profile advanced-packaging-daily`
 
 ## 新增文件
@@ -37,8 +37,9 @@
 
 ## 信源和门槛
 
-- 优先信源：公司官网、IR、技术活动页、官方新闻稿、`UCIe Consortium`、`SEMI`
-- 次级高质量媒体：`Reuters`、`Bloomberg`、`Financial Times`、`Nikkei Asia`、`EE Times`、`Semiconductor Engineering`、`DigiTimes`
+- 优先信源：公司官网、IR、技术活动页、官方新闻稿、交易所公告、`UCIe Consortium`、`SEMI`、`SEMICON`、`IEDM`、`ECTC`
+- 次级高质量媒体：`Reuters`、`Bloomberg`、`Financial Times`、`Nikkei Asia`、`CNBC`、`EE Times`、`Semiconductor Engineering`、`DigiTimes`、`TrendForce`
+- 低置信规则：`unclassified` 只进入观察候选，不能单独支撑高影响结论；低质 publisher 与营销/股价噪音会进入 source audit 排除统计
 - 影响关键词：先进封装、`CoWoS`、`HBM`、`Chiplet`、`Foveros`、`EMIB`、`FOCoS`、`XDFOI`、`ABF`、混合键合、硅光、`CPO`
 - 门槛：`min_high_confidence_items = 1`
 
@@ -57,14 +58,16 @@
 python3 -m unittest discover -s tests
 python3 scripts/run_profile.py --profile advanced-packaging-daily --dry-run
 python3 scripts/run_profile.py --profile advanced-packaging-daily --skip-delivery
-python3 scripts/send_email_report.py --check-smtp
+python3 scripts/send_feishu_report.py --check-feishu
 ```
 
 ## 上线检查
 
-- GitHub Secrets 复用现有 `DEEPSEEK_*` 和 `SMTP_*`
+- GitHub Secrets 配置 `DEEPSEEK_*` 与 `FEISHU_WEBHOOK_URL`
+- 如飞书机器人开启签名校验，额外配置 `FEISHU_SIGN_SECRET`
+- Webhook 只能写入 GitHub Secret，不应写入代码、profile、日志或 PR 描述
 - 手动触发 `.github/workflows/advanced-packaging-daily.yml`
 - 确认 `Generate daily brief`
 - 确认 `Validate report structure`
-- 确认 `Send email`
-- 确认邮箱收到 `集成电路先进封装每日简报（YYYY-MM-DD）`
+- 确认 `Send Feishu card`
+- 确认飞书群收到 `集成电路先进封装每日简报（YYYY-MM-DD）` 卡片

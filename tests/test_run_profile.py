@@ -27,6 +27,15 @@ class RunProfileTests(unittest.TestCase):
         self.assertIn("## Financial / Macro Pulse", report)
         self.assertIn("## Source Log", report)
 
+    def test_advanced_packaging_degraded_report_preserves_required_sections(self) -> None:
+        config = {"slug": "advanced-packaging-daily", "topic_name": "集成电路先进封装每日简报"}
+        report = build_degraded_report(datetime(2026, 4, 19, 12, 0), config, "invalid key")
+        self.assertIn("## Latest Developments", report)
+        self.assertIn("## Global Leader Watch", report)
+        self.assertIn("## China Watch", report)
+        self.assertIn("## Supply Chain Radar", report)
+        self.assertNotIn("模型发布", report)
+
     def test_main_degrades_when_deepseek_config_is_invalid(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)

@@ -42,7 +42,11 @@
     "allow_low_signal_fallback": true
   },
   "delivery": {
+    "channels": [
+      "email"
+    ],
     "email_subject_prefix": "AI/科技行业中午简报",
+    "feishu_title_prefix": "AI/科技行业中午简报",
     "attach_markdown": true
   },
   "retention_days": 14

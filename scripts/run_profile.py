@@ -18,7 +18,7 @@ if str(PROJECT_ROOT / "scripts") not in sys.path:
 from collectors import collect_deepseek_report, collect_github_report, collect_openai_report, collect_rss_report
 from collectors.deepseek_chat import check_deepseek_config
 from collectors.openai_search import check_openai_config
-from delivery import send_profile_email
+from delivery import send_profile_email, send_profile_feishu
 from brief_utils import (
     DEFAULT_DEEPSEEK_MODEL,
     DEFAULT_MODEL,
@@ -129,6 +129,8 @@ def build_structured_degraded_report(now_local: datetime, config: dict, reason: 
     slug = config.get("slug")
     if slug == "ai-frontier-daily":
         company_headings = ["Jensen Huang / NVIDIA", "Google", "Anthropic", "DeepSeek"]
+    elif slug == "advanced-packaging-daily":
+        company_headings = []
     else:
         company_headings = config.get("focus_companies", [])[:4] or ["OpenAI", "Anthropic", "Google", "DeepSeek"]
     topic_name = config.get("topic_name", "AI Brief")
@@ -179,6 +181,46 @@ def build_structured_degraded_report(now_local: datetime, config: dict, reason: 
                 "",
             ]
         )
+    elif slug == "advanced-packaging-daily":
+        body.extend(
+            [
+                "## Latest Developments",
+                "- 无重大新增。本次模型整理链路未完成，系统未扩写未经核验的先进封装细节。",
+                "- 关注点：待链路恢复后补跑，继续观察扩产、量产、客户导入、平台发布、政策支持与供应链瓶颈。",
+                "",
+                "## Global Leader Watch",
+                "### TSMC / Intel / Samsung",
+                "- 无重大新增。",
+                "- 继续跟踪 CoWoS、SoIC、Foveros、I-Cube、X-Cube 与 HBM 协同节奏。",
+                "",
+                "### ASE / Amkor / 其他全球 OSAT",
+                "- 无重大新增。",
+                "- 继续跟踪 2.5D/3D、扇出、先进测试、区域化交付与北美/东南亚布局。",
+                "",
+                "## China Watch",
+                "### 长电科技 / 通富微电 / 华天科技",
+                "- 无重大新增。",
+                "- 继续跟踪 XDFOI、Chiplet、2.5D/3D、先进测试与大客户导入。",
+                "",
+                "### 深南电路 / 载板材料 / 本土供应链",
+                "- 无重大新增。",
+                "- 继续跟踪 FC-BGA、ABF、封装材料、热管理与验证放量。",
+                "",
+                "## Supply Chain Radar",
+                "### Demand Side",
+                "- 无重大新增。",
+                "- 继续跟踪 NVIDIA、AMD、Broadcom、Marvell、华为及云厂商的先进封装需求牵引。",
+                "",
+                "### Substrates / Materials",
+                "- 无重大新增。",
+                "- 继续跟踪 ABF 载板、FCBGA、玻璃基板、封装材料与热界面材料。",
+                "",
+                "### Equipment / Test / Thermal / Photonics",
+                "- 无重大新增。",
+                "- 继续跟踪键合、混合键合、先进测试、液冷、硅光与 CPO 新增。",
+                "",
+            ]
+        )
     else:
         body.extend(
             [
@@ -189,7 +231,7 @@ def build_structured_degraded_report(now_local: datetime, config: dict, reason: 
             ]
         )
 
-    if slug not in {"us-iran-conflict-daily"}:
+    if slug not in {"us-iran-conflict-daily", "advanced-packaging-daily"}:
         body.extend(["## Company Watch"])
         for company in company_headings:
             body.extend(
@@ -368,6 +410,8 @@ def main() -> int:
         artifacts_dir / "final_response.json",
         json.dumps(result["final_response"], ensure_ascii=False, indent=2, default=str) + "\n",
     )
+    source_audit = result.get("source_audit", {})
+    write_text(artifacts_dir / "source_audit.json", json.dumps(source_audit, ensure_ascii=False, indent=2) + "\n")
     metadata = {
         "mode": result["mode"],
         "date": date_str,
@@ -379,14 +423,19 @@ def main() -> int:
         "model": resolved_model,
         "items_found": result["items_found"],
         "degraded": result["degraded"],
+        "selected_source_tiers": source_audit.get("selected_source_tiers", {}),
     }
     write_text(artifacts_dir / "run_metadata.json", json.dumps(metadata, ensure_ascii=False, indent=2) + "\n")
     write_text(artifacts_dir / "config_snapshot.json", json.dumps(config, ensure_ascii=False, indent=2) + "\n")
     cleanup_old_outputs(project_root, int(config["retention_days"]), now_local)
 
     generate_review_note(project_root, report_path)
-    if not args.skip_delivery and "email" in config.get("delivery", {}).get("channels", []):
-        send_profile_email(report_path, config, dry_run=args.dry_run)
+    if not args.skip_delivery:
+        channels = config.get("delivery", {}).get("channels", [])
+        if "email" in channels:
+            send_profile_email(report_path, config, dry_run=args.dry_run)
+        if "feishu" in channels:
+            send_profile_feishu(report_path, config, dry_run=args.dry_run)
 
     print(report_path)
     return 0

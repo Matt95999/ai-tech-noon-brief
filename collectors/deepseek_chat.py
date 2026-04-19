@@ -6,7 +6,13 @@ from datetime import datetime, timedelta
 from urllib import error, request
 from urllib.parse import urlsplit, urlunsplit
 
-from collectors.rss import collect_rss_items, filter_rss_items, serialize_items
+from collectors.rss import (
+    build_source_audit,
+    collect_rss_items_with_audit,
+    filter_rss_items,
+    format_source_audit_notes,
+    serialize_items,
+)
 from scripts.brief_utils import BriefGenerationError, DEFAULT_DEEPSEEK_MODEL, USER_AGENT, strip_markdown_fence
 
 
@@ -133,14 +139,15 @@ def format_candidates(items: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def build_research_prompt(now_local: datetime, config: dict, items: list[dict]) -> str:
+def build_research_prompt(now_local: datetime, config: dict, items: list[dict], source_audit: dict | None = None) -> str:
     window_start = now_local - timedelta(hours=int(config["lookback_hours"]))
     primary = ", ".join(config.get("source_policy", {}).get("primary_publishers", [])) or "无"
     secondary = ", ".join(config.get("source_policy", {}).get("secondary_publishers", [])) or "无"
     require_primary = "是" if config.get("source_policy", {}).get("require_primary_source") else "否"
     impact_keywords = ", ".join(config.get("impact_policy", {}).get("keywords", [])) or "无"
+    audit_notes = "\n".join(format_source_audit_notes(source_audit or {}))
     return f"""
-你是一名严谨的中文 AI 产业编辑。你只能使用我提供的候选证据，不得补充外部事实，不得猜测。
+你是一名严谨的中文半导体产业研究编辑。你只能使用我提供的候选证据，不得补充外部事实，不得猜测。
 
 时间窗：
 - 开始：{window_start.strftime('%Y-%m-%d %H:%M %Z')}
@@ -153,7 +160,9 @@ def build_research_prompt(now_local: datetime, config: dict, items: list[dict]) 
 - 是否必须主信源：{require_primary}
 - 影响力关键词：{impact_keywords}
 - 若证据不足以支撑“高影响动态”，必须明确写“无重大新增”。
-- 只保留真实、可归因、对 AI 产业或主要公司有明显影响的事件。
+- 只保留真实、可归因、对先进封装行业、上下游供应链或主要公司有明显影响的事件。
+- primary 和 secondary 可用于支撑正式结论；unclassified 只能作为观察线索，不能单独支撑高影响结论。
+- 如果候选证据没有 primary 或 secondary 支撑，不得扩写成确定性行业结论。
 - 所有相对时间表达改写成绝对日期。
 
 请基于下面候选证据，输出严格 Markdown，包含以下部分：
@@ -174,6 +183,10 @@ def build_research_prompt(now_local: datetime, config: dict, items: list[dict]) 
 
 ## Source Quality Notes
 - 标出主信源与二线信源使用情况
+- 必须说明 primary / secondary / unclassified 的使用情况；如使用 unclassified，只能标为观察线索。
+
+信源审计：
+{audit_notes}
 
 候选证据：
 {format_candidates(items)}
@@ -247,6 +260,20 @@ def build_low_signal_research_notes(now_local: datetime, config: dict, items: li
     return "\n".join(lines)
 
 
+def append_source_audit_to_research_notes(research_notes: str, source_audit: dict) -> str:
+    notes = format_source_audit_notes(source_audit)
+    if not notes:
+        return research_notes
+    return "\n".join(
+        [
+            research_notes.rstrip(),
+            "",
+            "## Source Audit",
+            *notes,
+        ]
+    )
+
+
 def build_low_signal_report(now_local: datetime, config: dict) -> str:
     slug = config.get("slug")
     companies = config.get("focus_companies", [])[:4]
@@ -256,8 +283,9 @@ def build_low_signal_report(now_local: datetime, config: dict) -> str:
             "- 本轮继续保持严格信源纪律，避免把未充分核验的战事、外交或能源噪音写进正式简报。",
         ]
     else:
+        topic_name = config.get("topic_name", "行业简报")
         summary_lines = [
-            "- 无重大新增。过去 24 小时未出现足够高置信、且具有较大影响力的 AI 动态。",
+            f"- 无重大新增。过去 24 小时未出现足够高置信、且具有较大影响力的{topic_name}新增。",
             "- 本轮继续保持严格信源纪律，避免把低影响或二手噪音写进正式晚报。",
         ]
     lines = [
@@ -296,6 +324,46 @@ def build_low_signal_report(now_local: datetime, config: dict) -> str:
                 "",
             ]
         )
+    elif slug == "advanced-packaging-daily":
+        lines.extend(
+            [
+                "## Latest Developments",
+                "- 无重大新增。过去 24 小时未出现足够高置信、且具有较大影响力的先进封装行业新增。",
+                "- 继续观察扩产、量产、客户导入、平台发布、产业政策与供应链瓶颈是否形成新催化。",
+                "",
+                "## Global Leader Watch",
+                "### TSMC / Intel / Samsung",
+                "- 无重大新增。",
+                "- 继续跟踪 CoWoS、SoIC、Foveros、I-Cube、X-Cube 与 HBM 协同节奏。",
+                "",
+                "### ASE / Amkor / 其他全球 OSAT",
+                "- 无重大新增。",
+                "- 继续跟踪 2.5D/3D、扇出、先进测试、区域化交付与北美/东南亚布局。",
+                "",
+                "## China Watch",
+                "### 长电科技 / 通富微电 / 华天科技",
+                "- 无重大新增。",
+                "- 继续跟踪 XDFOI、Chiplet、2.5D/3D、先进测试与大客户导入。",
+                "",
+                "### 深南电路 / 载板材料 / 本土供应链",
+                "- 无重大新增。",
+                "- 继续跟踪 FC-BGA、ABF、封装材料、热管理与验证放量。",
+                "",
+                "## Supply Chain Radar",
+                "### Demand Side",
+                "- 无重大新增。",
+                "- 继续跟踪 NVIDIA、AMD、Broadcom、Marvell、华为及云厂商的先进封装需求牵引。",
+                "",
+                "### Substrates / Materials",
+                "- 无重大新增。",
+                "- 继续跟踪 ABF 载板、FCBGA、玻璃基板、封装材料与热界面材料。",
+                "",
+                "### Equipment / Test / Thermal / Photonics",
+                "- 无重大新增。",
+                "- 继续跟踪键合、混合键合、先进测试、液冷、硅光与 CPO 新增。",
+                "",
+            ]
+        )
     else:
         lines.extend(
             [
@@ -325,24 +393,35 @@ def build_low_signal_report(now_local: datetime, config: dict) -> str:
 
 def collect_deepseek_report(now_local: datetime, config: dict, template_text: str, model: str | None = None) -> dict:
     resolved = resolve_deepseek_config(model=model, purpose="DeepSeek live generation")
-    items = filter_rss_items(collect_rss_items(now_local, config), config)
+    raw_items, collection_audit = collect_rss_items_with_audit(now_local, config)
+    items = filter_rss_items(raw_items, config)
+    source_audit = build_source_audit(raw_items, items, collection_audit)
     min_items = int(config.get("impact_policy", {}).get("min_high_confidence_items", 1))
     if len(items) < min_items:
+        research_notes = append_source_audit_to_research_notes(
+            build_low_signal_research_notes(now_local, config, items),
+            source_audit,
+        )
         return {
             "mode": "low-signal-filtered-rss",
-            "research_notes": build_low_signal_research_notes(now_local, config, items),
+            "research_notes": research_notes,
             "report_markdown": build_low_signal_report(now_local, config),
-            "research_response": {"mode": "low-signal-filtered-rss", "items": serialize_items(items)},
+            "research_response": {
+                "mode": "low-signal-filtered-rss",
+                "items": serialize_items(items),
+                "source_audit": source_audit,
+            },
             "final_response": {"mode": "low-signal-filtered-rss"},
             "items_found": len(items),
             "degraded": True,
+            "source_audit": source_audit,
         }
 
     research_payload = {
         "model": resolved["model"],
         "messages": [
-            {"role": "system", "content": "You are a rigorous Chinese AI industry editor."},
-            {"role": "user", "content": build_research_prompt(now_local, config, items)},
+            {"role": "system", "content": "You are a rigorous Chinese semiconductor industry editor."},
+            {"role": "user", "content": build_research_prompt(now_local, config, items, source_audit)},
         ],
         "temperature": 0.2,
     }
@@ -350,6 +429,7 @@ def collect_deepseek_report(now_local: datetime, config: dict, template_text: st
     research_notes = strip_markdown_fence(extract_choice_text(research_response))
     if not research_notes:
         raise BriefGenerationError("DeepSeek research pass returned empty output.")
+    research_notes = append_source_audit_to_research_notes(research_notes, source_audit)
 
     final_payload = {
         "model": resolved["model"],
@@ -372,8 +452,10 @@ def collect_deepseek_report(now_local: datetime, config: dict, template_text: st
             "mode": "live-deepseek",
             "response": research_response,
             "items": serialize_items(items),
+            "source_audit": source_audit,
         },
         "final_response": final_response,
         "items_found": len(items),
         "degraded": "无重大新增" in report_markdown,
+        "source_audit": source_audit,
     }
