@@ -105,7 +105,10 @@ def build_card_markdown(report_path: Path, title: str) -> str:
     # Prioritize: V2 Chinese sections > V1 English sections
     preferred_order = [
         "一、核心观点", "Executive Summary",
+        "Latest Developments",
         "二、全球龙头追踪",
+        "三、中国产业链深度追踪",
+        "四、技术路线图跟踪",
         "六、供应链雷达",
         "五、政策与资本动向",
         "What Matters",
