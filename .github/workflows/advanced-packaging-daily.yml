@@ -73,15 +73,16 @@ jobs:
           fi
           REPORT_PATH="reports/${REPORT_DATE}.md"
           test -s "$REPORT_PATH"
-          grep -q "Executive Summary" "$REPORT_PATH"
-          grep -q "Supply Chain Radar" "$REPORT_PATH"
-          grep -q "What Matters" "$REPORT_PATH"
-          grep -q "Source Log" "$REPORT_PATH"
+          # V2 template check: core thesis, global leader, supply chain, source log
+          grep -qE "(核心观点|Executive Summary)" "$REPORT_PATH"
+          grep -qE "(全球龙头|Global Leader|Leader Watch)" "$REPORT_PATH"
+          grep -qE "(供应链雷达|Supply Chain Radar)" "$REPORT_PATH"
+          grep -qE "(信源追溯|Source Log|来源)" "$REPORT_PATH"
           printf 'REPORT_PATH=%s\n' "$REPORT_PATH" >> "$GITHUB_ENV"
 
       - name: Send Feishu card
         run: |
-          python3 scripts/send_feishu_report.py "$REPORT_PATH" --subject-prefix "集成电路先进封装每日简报"
+          python3 scripts/send_feishu_report.py "$REPORT_PATH" --subject-prefix "先进封装产业每日观察"
 
       - name: Upload report artifacts
         if: always()

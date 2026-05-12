@@ -1,12 +1,17 @@
 {
   "slug": "advanced-packaging-daily",
-  "topic_name": "集成电路先进封装每日简报",
+  "topic_name": "先进封装产业每日观察",
   "timezone": "Asia/Shanghai",
   "lookback_hours": 24,
   "collectors": [
     "deepseek_chat",
-    "rss"
+    "rss",
+    "official_rss",
+    "domestic_sources"
   ],
+  "template_path": "templates/advanced_packaging_daily_template_v2.md",
+  "low_signal_template_path": "templates/advanced_packaging_daily_low_signal_template.md",
+
   "rss_queries": [
     "site:tsmc.com CoWoS OR SoIC OR advanced packaging",
     "site:intel.com foundry advanced packaging OR Foveros OR EMIB",
@@ -29,9 +34,15 @@
     "FCBGA AI",
     "silicon photonics packaging",
     "co-packaged optics semiconductor",
-    "advanced packaging China"
+    "advanced packaging China",
+    "glass substrate semiconductor",
+    "panel level packaging",
+    "UCIe chiplet",
+    "2.5D 3D packaging",
+    "fan-out wafer level packaging",
+    "embedded bridge packaging"
   ],
-  "template_path": "templates/advanced_packaging_daily_template.md",
+
   "focus_companies": [
     "TSMC",
     "Intel Foundry",
@@ -51,8 +62,20 @@
     "AMD",
     "Broadcom",
     "Marvell",
-    "Huawei"
+    "Huawei",
+    "BESI",
+    "ASMPT",
+    "Onto Innovation",
+    "NAURA",
+    "AMEC",
+    "ACM Research",
+    "SJMC",
+    "Hua Feng Packaging",
+    "Jingfang Technology",
+    "ChangXin Memory Technologies",
+    "Yangtze Memory Technologies"
   ],
+
   "company_aliases": {
     "TSMC": [
       "Taiwan Semiconductor",
@@ -61,6 +84,7 @@
     ],
     "Intel Foundry": [
       "Intel",
+      "Intel Corporation",
       "IFS",
       "英特尔"
     ],
@@ -72,6 +96,7 @@
     "ASE": [
       "ASE Technology",
       "ASE Holdings",
+      "ASE Group",
       "日月光"
     ],
     "Amkor": [
@@ -125,9 +150,57 @@
       "博通"
     ],
     "Huawei": [
-      "华为"
+      "华为",
+      "海思",
+      "Hisilicon"
+    ],
+    "BESI": [
+      "BE Semiconductor",
+      "Besi",
+      "Besi Netherlands"
+    ],
+    "ASMPT": [
+      "ASM Pacific Technology",
+      "ASM PT"
+    ],
+    "Onto Innovation": [
+      "Onto",
+      "Rudolph Technologies"
+    ],
+    "NAURA": [
+      "北方华创",
+      "Naura Technology"
+    ],
+    "AMEC": [
+      "中微公司",
+      "Advanced Micro-Fabrication Equipment"
+    ],
+    "ACM Research": [
+      "盛美上海",
+      "ACM Research Shanghai"
+    ],
+    "SJMC": [
+      "拓荆科技",
+      "Shenyang Jingcheng Machinery",
+      "SJMC"
+    ],
+    "Hua Feng Packaging": [
+      "华封科技",
+      "Hua Feng Technology"
+    ],
+    "Jingfang Technology": [
+      "晶方科技"
+    ],
+    "ChangXin Memory Technologies": [
+      "长鑫存储",
+      "CXMT"
+    ],
+    "Yangtze Memory Technologies": [
+      "长江存储",
+      "YMTC"
     ]
   },
+
   "include_keywords": [
     "advanced packaging",
     "packaging",
@@ -151,13 +224,35 @@
     "silicon photonics",
     "co-packaged optics",
     "advanced test",
-    "thermal"
+    "thermal",
+    "glass substrate",
+    "panel level packaging",
+    "UCIe",
+    "heterogeneous integration",
+    "interposer",
+    "through silicon via",
+    "TSV",
+    "micro bump",
+    "mixed bonding",
+    "MR-MUF",
+    "TC-NCF",
+    "D2W bonding",
+    "W2W bonding",
+    "laser lift-off",
+    "temporary bonding",
+    "debonding"
   ],
+
   "exclude_keywords": [
     "sports",
     "celebrity",
-    "gaming rumor"
+    "gaming rumor",
+    "gaming review",
+    "entertainment",
+    "movie",
+    "music release"
   ],
+
   "source_policy": {
     "primary_publishers": [
       "TSMC",
@@ -182,9 +277,20 @@
       "Marvell",
       "UCIe Consortium",
       "SEMI",
-      "SEMICON",
-      "IEDM",
-      "ECTC"
+      "JEDEC",
+      "IEEE",
+      "BESI",
+      "ASMPT",
+      "Onto Innovation",
+      "NAURA",
+      "AMEC",
+      "ACM Research",
+      "SJMC",
+      "Yole Group",
+      "Yole Intelligence",
+      "IMEC",
+      "华天科技",
+      "通富微电"
     ],
     "secondary_publishers": [
       "Reuters",
@@ -196,7 +302,25 @@
       "Semiconductor Engineering",
       "DigiTimes",
       "TrendForce",
-      "Tom's Hardware"
+      "Tom's Hardware",
+      "WSJ",
+      "Barron's",
+      "AnandTech",
+      "3D InCites",
+      "Semiconductor Today",
+      "IC Insights",
+      "Omdia",
+      "Prismark",
+      "财联社",
+      "证券时报",
+      "中国证券报",
+      "集微网",
+      "Jiwei",
+      "半导体行业观察",
+      "电子工程专辑",
+      "EE Times China",
+      "问芯",
+      "芯智讯"
     ],
     "exclude_publishers": [
       "TipRanks",
@@ -205,10 +329,15 @@
       "ABC Money",
       "Asia Business Outlook",
       "Gadgets 360",
-      "IT Voice Media"
+      "IT Voice Media",
+      "Seeking Alpha",
+      "InvestorPlace",
+      "Motley Fool",
+      "Investing.com"
     ],
     "require_primary_source": false
   },
+
   "impact_policy": {
     "keywords": [
       "packaging",
@@ -228,6 +357,9 @@
       "chiplet",
       "UCIe",
       "HBM",
+      "HBM3",
+      "HBM3e",
+      "HBM4",
       "interposer",
       "substrate",
       "glass substrate",
@@ -235,23 +367,71 @@
       "FCBGA",
       "fan-out",
       "hybrid bonding",
+      "mixed bonding",
+      "MR-MUF",
+      "TC-NCF",
+      "D2W",
+      "W2W",
       "CPO",
+      "co-packaged optics",
       "silicon photonics",
       "advanced test",
       "thermal",
-      "liquid cooling"
+      "liquid cooling",
+      "panel level packaging",
+      "PLP",
+      "heterogeneous integration",
+      "TSV",
+      "micro bump",
+      "laser lift-off",
+      "die-to-wafer",
+      "wafer-to-wafer",
+      "temporary bonding",
+      "debonding",
+      "3D stacked",
+      "wide bandwidth memory",
+      "CAPEX",
+      "capacity expansion",
+      "产能扩张",
+      "产能建设",
+      "高端封装",
+      "先进封装",
+      "封测"
     ],
-    "max_candidates": 10,
-    "min_high_confidence_items": 1,
+    "max_candidates": 15,
+    "min_high_confidence_items": 2,
     "allow_low_signal_fallback": true
   },
+
+  "cross_validation": {
+    "enabled": true,
+    "require_multiple_sources_for": [
+      "capacity expansion",
+      "CAPEX change",
+      "technology roadmap shift",
+      "merger acquisition",
+      "major customer win",
+      "产能扩张",
+      "资本开支"
+    ],
+    "max_source_single_ratio": 0.4
+  },
+
+  "quality_metrics": {
+    "report_source_diversity_target": 0.4,
+    "tier0_ratio_target": 0.3,
+    "domestic_source_ratio_target": 0.3
+  },
+
   "delivery": {
     "channels": [
       "feishu"
     ],
-    "email_subject_prefix": "集成电路先进封装每日简报",
-    "feishu_title_prefix": "集成电路先进封装每日简报",
+    "feishu_title_prefix": "先进封装产业每日观察",
+    "feishu_card_max_sections": 6,
+    "feishu_truncation_hint": true,
     "attach_markdown": true
   },
+
   "retention_days": 14
 }

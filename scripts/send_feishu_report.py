@@ -88,11 +88,38 @@ def build_card_markdown(report_path: Path, title: str) -> str:
         parts.extend(metadata[:3])
         parts.append("")
 
-    for section_name in ("Executive Summary", "Latest Developments", "What Matters", "Source Log"):
-        lines = compact_section(sections.get(section_name, []))
+    v2_section_map = {
+        "一、核心观点": "核心观点",
+        "二、全球龙头追踪": "全球龙头",
+        "三、中国产业链深度追踪": "中国产业链",
+        "四、技术路线图跟踪": "技术路线图",
+        "五、政策与资本动向": "政策与资本",
+        "六、供应链雷达": "Supply Chain Radar",
+        "七、数据附录与信源追溯": "Source Log",
+        "Executive Summary": "Executive Summary",
+        "Latest Developments": "Latest Developments",
+        "What Matters": "What Matters",
+        "Source Log": "Source Log",
+    }
+
+    # Prioritize: V2 Chinese sections > V1 English sections
+    preferred_order = [
+        "一、核心观点", "Executive Summary",
+        "二、全球龙头追踪",
+        "六、供应链雷达",
+        "五、政策与资本动向",
+        "What Matters",
+        "七、数据附录与信源追溯", "Source Log",
+    ]
+    for section_key in preferred_order:
+        mapped_name = v2_section_map.get(section_key, section_key)
+        section_data = sections.get(section_key)
+        if not section_data:
+            continue
+        lines = compact_section(section_data)
         if not lines:
             continue
-        parts.append(f"**{section_name}**")
+        parts.append(f"**{mapped_name}**")
         parts.extend(lines)
         parts.append("")
 
