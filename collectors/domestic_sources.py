@@ -38,6 +38,10 @@ DOMESTIC_SEARCH_QUERIES: list[str] = [
     "Chiplet 小芯片",
     "HBM 中国 封装",
     "玻璃基板 半导体",
+    "芯源微 封装",
+    "华海清科 CMP",
+    "混合键合 设备",
+    "先进封装 检测",
 ]
 
 POLICY_QUERIES: list[str] = [

@@ -66,10 +66,18 @@
     "BESI",
     "ASMPT",
     "Onto Innovation",
+    "Applied Materials",
+    "Tokyo Electron",
+    "LAM Research",
+    "KLA",
+    "Teradyne",
+    "Advantest",
     "NAURA",
     "AMEC",
     "ACM Research",
     "SJMC",
+    "Kingsemi",
+    "Hwatsing Technology",
     "Hua Feng Packaging",
     "Jingfang Technology",
     "ChangXin Memory Technologies",
@@ -167,6 +175,28 @@
       "Onto",
       "Rudolph Technologies"
     ],
+    "Applied Materials": [
+      "AMAT",
+      "应用材料"
+    ],
+    "Tokyo Electron": [
+      "TEL",
+      "东京电子"
+    ],
+    "LAM Research": [
+      "泛林半导体",
+      "Lam Research"
+    ],
+    "KLA": [
+      "KLA Corporation",
+      "科磊"
+    ],
+    "Teradyne": [
+      "泰瑞达"
+    ],
+    "Advantest": [
+      "爱德万"
+    ],
     "NAURA": [
       "北方华创",
       "Naura Technology"
@@ -183,6 +213,14 @@
       "拓荆科技",
       "Shenyang Jingcheng Machinery",
       "SJMC"
+    ],
+    "Kingsemi": [
+      "芯源微",
+      "Kingsemi Technology"
+    ],
+    "Hwatsing Technology": [
+      "华海清科",
+      "Hwatsing"
     ],
     "Hua Feng Packaging": [
       "华封科技",
@@ -282,12 +320,20 @@
       "BESI",
       "ASMPT",
       "Onto Innovation",
+      "Applied Materials",
+      "Tokyo Electron",
+      "LAM Research",
+      "KLA",
+      "Teradyne",
+      "Advantest",
       "NAURA",
       "AMEC",
       "ACM Research",
       "SJMC",
       "Yole Group",
       "Yole Intelligence",
+      "TechSearch International",
+      "Prismark",
       "IMEC",
       "华天科技",
       "通富微电"
@@ -310,7 +356,6 @@
       "Semiconductor Today",
       "IC Insights",
       "Omdia",
-      "Prismark",
       "财联社",
       "证券时报",
       "中国证券报",
@@ -396,10 +441,30 @@
       "产能建设",
       "高端封装",
       "先进封装",
-      "封测"
+      "封测",
+      "键合",
+      "混合键合",
+      "硅通孔",
+      "硅光",
+      "先进制程",
+      "封装基板",
+      "封装载板",
+      "载板",
+      "封装设备",
+      "SiP",
+      "3D封装",
+      "2.5D封装",
+      "晶圆级封装",
+      "面板级封装",
+      "扇出型",
+      "倒装",
+      "凸块",
+      "TSV",
+      "中介层",
+      "玻璃基板"
     ],
     "max_candidates": 15,
-    "min_high_confidence_items": 2,
+    "min_high_confidence_items": 1,
     "allow_low_signal_fallback": true
   },
 

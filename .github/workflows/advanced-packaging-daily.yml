@@ -2,7 +2,10 @@ name: Advanced Packaging Daily Live
 
 on:
   schedule:
+    # 08:30 CST (00:30 UTC) — morning edition
     - cron: "30 0 * * *"
+    # 16:30 CST (08:30 UTC) — afternoon supplement
+    - cron: "30 8 * * *"
   workflow_dispatch:
     inputs:
       date:
@@ -58,6 +61,12 @@ jobs:
       - name: Generate daily brief
         run: |
           export SKIP_EMAIL=1
+          # Afternoon run (UTC hour >= 8 = Beijing >= 16): shorter lookback for freshness
+          UTC_HOUR=$(TZ=UTC date +%H)
+          if [ "$UTC_HOUR" -ge 8 ]; then
+            echo "Afternoon supplement run — using 10h lookback for freshness"
+            export LOOKBACK_HOURS=10
+          fi
           if [ -n "${{ github.event.inputs.date }}" ]; then
             ./run_brief.sh --date "${{ github.event.inputs.date }}"
           else
@@ -79,6 +88,34 @@ jobs:
           grep -qE "(供应链雷达|Supply Chain Radar)" "$REPORT_PATH"
           grep -qE "(信源追溯|Source Log|来源)" "$REPORT_PATH"
           printf 'REPORT_PATH=%s\n' "$REPORT_PATH" >> "$GITHUB_ENV"
+
+      - name: Collector statistics
+        run: |
+          echo "=== 采集统计 ==="
+          echo "报告: $REPORT_PATH"
+          LINES=$(wc -l < "$REPORT_PATH")
+          echo "行数: ${LINES}"
+          echo ""
+          echo "--- 信源分层 ---"
+          python3 -c "
+import re
+text = open('$REPORT_PATH').read()
+# Extract source audit table if present
+audit = re.findall(r'\\|\\s*\\S[^|]+\\|', text)
+print(f'报告总字符: {len(text)}')
+# Section count
+sections = re.findall(r'^## ', text, re.MULTILINE)
+print(f'Sections: {len(sections)}')
+# Low signal check
+if '无重大新增' in text:
+    print('Signal: LOW (无重大新增)')
+else:
+    print('Signal: NORMAL')
+"
+          echo "--- 采集渠道摘要 ---"
+          grep -cE "(TIER|tier|Source|信源)" "$REPORT_PATH" || true
+          echo ""
+          echo "=== 统计完成 ==="
 
       - name: Send Feishu card
         run: |
